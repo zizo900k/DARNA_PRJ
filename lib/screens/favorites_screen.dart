@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
@@ -134,7 +134,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           height: 200,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.primary.withOpacity(0.05),
+                            color: AppColors.primary.withValues(alpha: 0.05),
                           ),
                           alignment: Alignment.center,
                           child: Container(
@@ -142,7 +142,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             height: 140,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                             ),
                             alignment: Alignment.center,
                             child: Container(
@@ -156,7 +156,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 ]),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.4),
+                                    color: AppColors.primary.withValues(alpha: 0.4),
                                     offset: const Offset(0, 8),
                                     blurRadius: 16,
                                   ),
@@ -213,7 +213,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     offset: const Offset(0, 2),
                     blurRadius: 4,
                   ),
@@ -265,7 +265,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     offset: const Offset(0, 4),
                     blurRadius: 12,
                   ),
@@ -278,7 +278,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   Stack(
                     children: [
                       CachedNetworkImage(
-                        imageUrl: item['image'],
+                        imageUrl: item['image'] ?? (item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0] : ''),
                         height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -426,7 +426,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     offset: const Offset(0, 4),
                     blurRadius: 12,
                   ),
@@ -438,7 +438,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   Stack(
                     children: [
                       CachedNetworkImage(
-                        imageUrl: item['image'],
+                        imageUrl: item['image'] ?? (item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0] : ''),
                         width: 120,
                         height: 140,
                         fit: BoxFit.cover,

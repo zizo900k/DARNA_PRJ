@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../data/properties_data.dart';
+import 'package:provider/provider.dart';
+import '../theme/favorites_provider.dart';
 import '../theme/app_theme.dart';
 import 'shimmer_placeholder.dart';
 
@@ -13,11 +15,11 @@ class PropertyCard extends StatelessWidget {
   final bool showRating;
 
   const PropertyCard({
-    Key? key,
+    super.key,
     required this.property,
     this.variant = PropertyCardVariant.horizontal,
     this.showRating = false,
-  }) : super(key: key);
+  });
 
   String _formatPrice() {
     if (property.pricePerMonth != null) {
@@ -38,6 +40,9 @@ class PropertyCard extends StatelessWidget {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final favProvider = context.watch<FavoritesProvider>();
+    final isFavorite = favProvider.isFavorite(property.id);
 
     return Container(
       width: cardWidth,
@@ -142,21 +147,20 @@ class PropertyCard extends StatelessWidget {
                     top: 12,
                     right: 12,
                     child: Material(
-                      color: Colors.white.withOpacity(0.95),
+                      color: (isDark ? DarkColors.card : Colors.white).withValues(alpha: 0.95),
                       shape: const CircleBorder(),
                       child: InkWell(
                         customBorder: const CircleBorder(),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Added to Favorites (Coming Soon)'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                          context.read<FavoritesProvider>().toggleFavorite(property.toMap());
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Icon(Icons.favorite_border, size: 18, color: AppColors.primary),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 18,
+                            color: isFavorite ? AppColors.error : AppColors.primary,
+                          ),
                         ),
                       ),
                     ),

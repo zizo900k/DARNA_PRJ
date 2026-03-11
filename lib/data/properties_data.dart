@@ -39,6 +39,25 @@ class Property {
     required this.featured,
     this.propertyLabel,
   });
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'type': type,
+      'status': status,
+      'price': price,
+      'priceType': pricePerMonth != null ? 'month' : 'total',
+      'location': location,
+      'bedrooms': bedrooms,
+      'bathrooms': bathrooms,
+      'area': area,
+      'rating': rating,
+      'image': image,
+      'featured': featured,
+      'propertyLabel': propertyLabel,
+    };
+  }
 }
 
 class PropertyType {

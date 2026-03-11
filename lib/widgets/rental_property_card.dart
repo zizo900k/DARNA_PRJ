@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../data/properties_data.dart';
+import 'package:provider/provider.dart';
+import '../theme/favorites_provider.dart';
 import '../theme/app_theme.dart';
 import 'shimmer_placeholder.dart';
 
@@ -9,9 +11,9 @@ class RentalPropertyCard extends StatelessWidget {
   final Property property;
 
   const RentalPropertyCard({
-    Key? key,
+    super.key,
     required this.property,
-  }) : super(key: key);
+  });
 
   String _formatPrice() {
     if (property.pricePerMonth != null) {
@@ -24,6 +26,9 @@ class RentalPropertyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final favProvider = context.watch<FavoritesProvider>();
+    final isFavorite = favProvider.isFavorite(property.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -92,7 +97,7 @@ class RentalPropertyCard extends StatelessWidget {
                     left: 10,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -112,21 +117,20 @@ class RentalPropertyCard extends StatelessWidget {
                     top: 10,
                     right: 10,
                     child: Material(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       shape: const CircleBorder(),
                       child: InkWell(
                         customBorder: const CircleBorder(),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Added to Favorites (Coming Soon)'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                          context.read<FavoritesProvider>().toggleFavorite(property.toMap());
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Icon(Icons.favorite_border, size: 16, color: AppColors.white),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 16,
+                            color: isFavorite ? AppColors.error : AppColors.white,
+                          ),
                         ),
                       ),
                     ),
