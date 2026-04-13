@@ -1,0 +1,96 @@
+<?php
+
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PropertyController;
+use App\Http\Controllers\Api\PropertyPhotoController;
+use App\Http\Controllers\Api\RentController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SaleController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
+// Auth
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
+
+// Public property listing & details
+Route::get('/properties',      [PropertyController::class, 'index']);
+Route::get('/properties/types', [PropertyController::class, 'types']);
+Route::get('/properties/statuses', [PropertyController::class, 'statuses']);
+Route::get('/properties/nearby/{id}', [PropertyController::class, 'nearby']);
+Route::get('/properties/{property}', [PropertyController::class, 'show']);
+
+Route::get('/locations', [PropertyController::class, 'locations']);
+Route::get('/stats', [PropertyController::class, 'stats']);
+
+// Categories
+Route::get('/categories',          [CategoryController::class, 'index']);
+Route::get('/categories/{category}', [CategoryController::class, 'show']);
+
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (Require Authentication via Sanctum)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Auth
+    Route::get('/profile',    [AuthController::class, 'profile']);
+    Route::put('/profile',    [AuthController::class, 'updateProfile']);
+    Route::post('/logout',    [AuthController::class, 'logout']);
+    Route::get('/profile/listings', [AuthController::class, 'listings']);
+    Route::get('/profile/stats',    [AuthController::class, 'stats']);
+
+    // Properties CRUD
+    Route::post('/properties',               [PropertyController::class, 'store']);
+    Route::put('/properties/{property}',     [PropertyController::class, 'update']);
+    Route::delete('/properties/{property}', [PropertyController::class, 'destroy']);
+
+    // Property Photos
+    Route::post('/properties/{property}/photos',            [PropertyPhotoController::class, 'store']);
+    Route::delete('/properties/{property}/photos/{photo}', [PropertyPhotoController::class, 'destroy']);
+
+    // Favorites
+    Route::get('/favorites',          [FavoriteController::class, 'index']);
+    Route::post('/favorites',         [FavoriteController::class, 'store']);
+    Route::delete('/favorites',       [FavoriteController::class, 'clearAll']);
+    Route::delete('/favorites/{propertyId}', [FavoriteController::class, 'destroy']);
+
+    // Reviews
+    Route::get('/properties/{propertyId}/reviews', [ReviewController::class, 'index']);
+    Route::post('/reviews',               [ReviewController::class, 'store']);
+    Route::put('/reviews/{review}',       [ReviewController::class, 'update']);
+    Route::delete('/reviews/{review}',    [ReviewController::class, 'destroy']);
+
+    // Notifications
+    Route::get('/notifications',                           [NotificationController::class, 'index']);
+    Route::put('/notifications/{notification}/read',       [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all',                  [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{notification}',         [NotificationController::class, 'destroy']);
+
+    // Rents
+    Route::get('/rents',          [RentController::class, 'index']);
+    Route::post('/rents',         [RentController::class, 'store']);
+    Route::get('/rents/{rent}',   [RentController::class, 'show']);
+    Route::put('/rents/{rent}',   [RentController::class, 'update']);
+
+    // Sales
+    Route::get('/sales',          [SaleController::class, 'index']);
+    Route::post('/sales',         [SaleController::class, 'store']);
+    Route::get('/sales/{sale}',   [SaleController::class, 'show']);
+    Route::put('/sales/{sale}',   [SaleController::class, 'update']);
+
+    // Admin-only: Category management
+    Route::post('/categories',              [CategoryController::class, 'store']);
+    Route::put('/categories/{category}',    [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+});
