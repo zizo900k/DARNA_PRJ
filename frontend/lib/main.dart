@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/theme_provider.dart';
@@ -6,6 +6,7 @@ import 'theme/language_provider.dart';
 import 'theme/favorites_provider.dart';
 import 'theme/auth_provider.dart';
 import 'providers/property_provider.dart';
+import 'providers/chat_provider.dart';
 import 'navigation/app_router.dart';
 
 void main() {
@@ -18,6 +19,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => FavoritesProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PropertyProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const DarnaApp(),
     ),

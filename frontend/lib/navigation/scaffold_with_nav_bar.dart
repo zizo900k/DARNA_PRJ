@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../theme/language_provider.dart';
 import '../theme/auth_provider.dart';
+import '../providers/chat_provider.dart';
 
 class ScaffoldWithNavBar extends StatelessWidget {
   const ScaffoldWithNavBar({
@@ -14,8 +15,10 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {
+    return Consumer2<AuthProvider, ChatProvider>(
+      builder: (context, authProvider, chatProvider, _) {
+        final unread = chatProvider.unreadCount;
+
         return Scaffold(
           body: navigationShell,
           bottomNavigationBar: NavigationBar(
@@ -31,12 +34,23 @@ class ScaffoldWithNavBar extends StatelessWidget {
                   icon: const Icon(Icons.favorite_outline),
                   label: context.tr('nav_favorites')),
               NavigationDestination(
+                icon: Badge(
+                  isLabelVisible: unread > 0,
+                  label: Text(
+                    unread > 9 ? '9+' : '$unread',
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                  ),
+                  child: const Icon(Icons.chat_bubble_outline),
+                ),
+                label: context.tr('nav_messages'),
+              ),
+              NavigationDestination(
                   icon: const Icon(Icons.person_outline),
                   label: context.tr('nav_profile')),
             ],
             onDestinationSelected: (int index) {
-              if ((index == 2 || index == 3) && !authProvider.isLoggedIn) {
-                // Favorites and Profile require auth
+              // Favorites (2), Messages (3), Profile (4) require auth
+              if ((index == 2 || index == 3 || index == 4) && !authProvider.isLoggedIn) {
                 context.go('/signin');
                 return;
               }
@@ -51,4 +65,3 @@ class ScaffoldWithNavBar extends StatelessWidget {
     );
   }
 }
-

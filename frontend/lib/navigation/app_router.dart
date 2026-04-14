@@ -7,6 +7,8 @@ import '../screens/sign_up_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/favorites_screen.dart';
+import '../screens/conversations_screen.dart';
+import '../screens/chat_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/property_detail_screen.dart';
 import '../screens/edit_profile_screen.dart';
@@ -26,6 +28,8 @@ final GlobalKey<NavigatorState> _shellNavigatorSearchKey =
     GlobalKey<NavigatorState>(debugLabel: 'shellSearch');
 final GlobalKey<NavigatorState> _shellNavigatorFavoritesKey =
     GlobalKey<NavigatorState>(debugLabel: 'shellFavorites');
+final GlobalKey<NavigatorState> _shellNavigatorMessagesKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellMessages');
 final GlobalKey<NavigatorState> _shellNavigatorProfileKey =
     GlobalKey<NavigatorState>(debugLabel: 'shellProfile');
 
@@ -48,8 +52,8 @@ class AppRouter {
       'images': [p.image],
       'featured': p.featured,
       'address': p.location,
-      'distance': 'â€”',
-      'duration': 'â€”',
+      'distance': '—',
+      'duration': '—',
       'agent': {
         'name': 'Darna Agent',
         'avatar': 'https://i.pravatar.cc/150?img=12',
@@ -87,7 +91,7 @@ class AppRouter {
           return const SignUpScreen();
         },
       ),
-      // Redirect /login â†’ /signin for convenience
+      // Redirect /login → /signin for convenience
       GoRoute(
         path: '/login',
         redirect: (_, __) => '/signin',
@@ -112,7 +116,7 @@ class AppRouter {
               GoRoute(
                 path: '/home',
                 builder: (BuildContext context, GoRouterState state) {
-                  return const HomeScreen(); // Actually HomeAuthScreen equivalent
+                  return const HomeScreen();
                 },
               ),
             ],
@@ -137,6 +141,18 @@ class AppRouter {
                 path: '/favorites',
                 builder: (BuildContext context, GoRouterState state) {
                   return const FavoritesScreen();
+                },
+              ),
+            ],
+          ),
+          // Messages
+          StatefulShellBranch(
+            navigatorKey: _shellNavigatorMessagesKey,
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/conversations',
+                builder: (BuildContext context, GoRouterState state) {
+                  return const ConversationsScreen();
                 },
               ),
             ],
@@ -219,7 +235,23 @@ class AppRouter {
           return const TransactionsScreen();
         },
       ),
+      // Chat screen (no bottom nav)
+      GoRoute(
+        path: '/chat/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          final extraParams = state.extra as Map<String, dynamic>?;
+          final conversationId = extraParams?['conversationId'] as int? ??
+              int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+          final otherUser = extraParams?['otherUser'] as Map<String, dynamic>?;
+          final property = extraParams?['property'] as Map<String, dynamic>?;
+          return ChatScreen(
+            conversationId: conversationId,
+            otherUser: otherUser,
+            property: property,
+          );
+        },
+      ),
     ],
   );
 }
-

@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_provider.dart';
 import '../theme/language_provider.dart';
 import '../providers/property_provider.dart';
+import '../providers/chat_provider.dart';
 import '../data/properties_data.dart';
 import '../widgets/category_pill.dart';
 import '../widgets/property_card.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!mounted) return;
         // ignore: use_build_context_synchronously
         context.read<PropertyProvider>().loadHomeScreenData();
+        context.read<ChatProvider>().fetchUnreadCount();
       });
     }
   }

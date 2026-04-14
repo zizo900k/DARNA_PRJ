@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../services/chat_service.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/language_provider.dart';
@@ -299,30 +299,55 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     }
   }
 
-  Future<void> _launchWhatsApp(String phone) async {
-    final String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    final Uri whatsappUrl = Uri.parse('whatsapp://send?phone=$cleanPhone');
+  Future<void> _openChat() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('require_login'))),
+      );
+      return;
+    }
+
+    final ownerId = _property['user_id'] ?? _property['user']?['id'];
+    if (ownerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('error') + 'Owner not found')),
+      );
+      return;
+    }
+
+    if (ownerId == authProvider.user?['id']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('cannot_chat_own'))),
+      );
+      return;
+    }
 
     try {
-      if (await canLaunchUrl(whatsappUrl)) {
-        await launchUrl(whatsappUrl);
-      } else {
-        // Fallback to web URL if app is not installed
-        final Uri webUrl = Uri.parse('https://wa.me/$cleanPhone');
-        if (await canLaunchUrl(webUrl)) {
-          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(context.tr('whatsapp_error'))),
-            );
-          }
-        }
+      final conv = await ChatService.getOrCreateConversation(
+        user2Id: ownerId,
+        propertyId: _property['id'] as int?,
+      );
+
+      // Send auto message if new conversation
+      if (conv['is_new'] == true) {
+        await ChatService.sendMessage(
+          conv['id'] as int,
+          context.tr('chat_auto_message'),
+        );
+      }
+
+      if (mounted) {
+        context.push('/chat/${conv['id']}', extra: {
+          'conversationId': conv['id'],
+          'otherUser': conv['other_user'],
+          'property': conv['property'],
+        });
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('whatsapp_error'))),
+          SnackBar(content: Text('${context.tr('error')} $e')),
         );
       }
     }
@@ -719,36 +744,28 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                           ),
                           const SizedBox(width: 16),
                           GestureDetector(
-                            onTap: () {
-                              _launchWhatsApp(agentPhone);
-                            },
+                            onTap: _openChat,
                             child: Container(
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: AppColors.white,
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.primary, Color(0xFF16A085)],
+                                ),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 4,
+                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                               alignment: Alignment.center,
-                              child: CachedNetworkImage(
-                                imageUrl:
-                                    'https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png',
-                                width: 28,
-                                height: 28,
-                                placeholder: (context, url) => const Icon(
-                                    Icons.chat_bubble,
-                                    color: Color(0xFF25D366),
-                                    size: 24),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.chat_bubble,
-                                        color: Color(0xFF25D366), size: 24),
+                              child: const Icon(
+                                Icons.chat_bubble_outline,
+                                color: Colors.white,
+                                size: 22,
                               ),
                             ),
                           ),

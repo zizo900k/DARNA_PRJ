@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\PropertyPhotoController;
 use App\Http\Controllers\Api\RentController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SaleController;
+use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -93,4 +94,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/categories',              [CategoryController::class, 'store']);
     Route::put('/categories/{category}',    [CategoryController::class, 'update']);
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+
+    // Chat / Messaging
+    Route::get('/conversations',                    [ChatController::class, 'conversations']);
+    Route::post('/conversations',                   [ChatController::class, 'createOrGet']);
+    Route::get('/conversations/unread-count',       [ChatController::class, 'unreadCount']);
+    Route::get('/conversations/{id}/messages',      [ChatController::class, 'messages']);
+    Route::post('/conversations/{id}/messages',     [ChatController::class, 'sendMessage']);
+    Route::put('/conversations/{id}/read',          [ChatController::class, 'markAsRead']);
 });
