@@ -7,6 +7,7 @@ import '../widgets/rental_property_card.dart';
 import '../widgets/filter_modal.dart';
 import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
+import '../services/api_service.dart';
 import 'dart:async';
 
 class SearchScreen extends StatefulWidget {
@@ -20,6 +21,8 @@ class _SearchScreenState extends State<SearchScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _sortOption = 'Default';
+  Map<String, dynamic>? _appliedFilters;
+  List<dynamic> _agents = [];
 
   List<String> get _sortOptions => [
     context.tr('sort_default'),
@@ -60,6 +63,27 @@ class _SearchScreenState extends State<SearchScreen> {
       _error = null;
     });
 
+    if (_selectedCategory == 'Agents') {
+      try {
+        final queryParam = _searchQuery.isNotEmpty ? '?search=${Uri.encodeComponent(_searchQuery)}' : '';
+        final response = await ApiService.get('/agents$queryParam');
+        if (mounted) {
+          setState(() {
+            _agents = response['data'] ?? [];
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _error = e.toString();
+            _isLoading = false;
+          });
+        }
+      }
+      return;
+    }
+
     try {
       final filters = <String, dynamic>{};
       
@@ -68,7 +92,26 @@ class _SearchScreenState extends State<SearchScreen> {
       }
       
       if (_selectedCategory != 'All') {
-        filters['type'] = _selectedCategory.toLowerCase(); // Map category to type per simple mock setup or use category ID if available
+        int categoryId = 0;
+        if (_selectedCategory == 'House' || _selectedCategory == 'Maison') categoryId = 4;
+        else if (_selectedCategory == 'Apartment' || _selectedCategory == 'Appartement') categoryId = 1;
+        else if (_selectedCategory == 'Villa') categoryId = 2;
+        
+        if (categoryId > 0) {
+          filters['category_id'] = categoryId;
+        }
+      }
+
+      if (_appliedFilters != null) {
+        if (_appliedFilters!['cashInHand'] != null) filters['cashInHand'] = _appliedFilters!['cashInHand'];
+        if (_appliedFilters!['monthlyInstallment'] != null) filters['monthlyInstallment'] = _appliedFilters!['monthlyInstallment'];
+        if (_appliedFilters!['numberOfRooms'] != null) filters['numberOfRooms'] = _appliedFilters!['numberOfRooms'];
+        
+        List<String> types = List<String>.from(_appliedFilters!['propertyTypes'] ?? []);
+        if (types.isNotEmpty && _selectedCategory == 'All') {
+           if (types.contains('apartment')) filters['category_id'] = 1;
+           else if (types.contains('villa')) filters['category_id'] = 2;
+        }
       }
 
       if (_sortOption != 'Default') {
@@ -113,9 +156,110 @@ class _SearchScreenState extends State<SearchScreen> {
   void _showFilterModal() {
     FilterModal.show(
       context,
+      initialFilters: _appliedFilters,
       onApply: (filters) {
-        debugPrint('Filters applied: $filters');
+        setState(() {
+          _appliedFilters = filters;
+        });
+        _fetchProperties();
       },
+    );
+  }
+
+  void _showCategoryPicker() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 40),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              context.tr('categories') ?? 'Categories',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: ['All', 'Apartment', 'House', 'Villa', 'Agents'].map((cat) {
+                final isSelected = _selectedCategory == cat;
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _selectedCategory = cat);
+                    _fetchProperties();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isSelected ? AppColors.primary : (isDark ? DarkColors.border : LightColors.border),
+                      ),
+                      boxShadow: isSelected ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        )
+                      ] : [],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (cat == 'Agents')
+                          Icon(Icons.people, size: 18, color: isSelected ? Colors.white : AppColors.primary)
+                        else if (cat == 'All')
+                          Icon(Icons.category, size: 18, color: isSelected ? Colors.white : AppColors.primary)
+                        else
+                          Icon(Icons.home, size: 18, color: isSelected ? Colors.white : theme.iconTheme.color),
+                        const SizedBox(width: 8),
+                        Text(
+                          cat == 'All' ? (context.tr('all') ?? 'All') :
+                          cat == 'Agents' ? (context.tr('agents') ?? 'Agents') :
+                          (context.tr(cat.toLowerCase()) ?? cat),
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : theme.textTheme.bodyLarge?.color,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -374,35 +518,83 @@ class _SearchScreenState extends State<SearchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Categories
+                        // Premium Category Selector
                         Padding(
-                          padding: const EdgeInsets.only(
-                              top: 20, bottom: 16, left: 24),
-                          child: Text(
-                            context.tr('categories'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.bodyLarge?.color,
-                              letterSpacing: -0.3,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          child: InkWell(
+                            onTap: _showCategoryPicker,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                              decoration: BoxDecoration(
+                                color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: isDark ? DarkColors.border : LightColors.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          _selectedCategory == 'Agents' ? Icons.people :
+                                          _selectedCategory == 'All' ? Icons.category : Icons.home_work_rounded,
+                                          color: AppColors.primary,
+                                          size: 24,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            context.tr('categories') ?? 'Categories',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _selectedCategory == 'All' ? (context.tr('all') ?? 'All') :
+                                            _selectedCategory == 'Agents' ? (context.tr('agents') ?? 'Agents') :
+                                            (context.tr(_selectedCategory.toLowerCase()) ?? _selectedCategory),
+                                            style: TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.textTheme.bodyLarge?.color,
+                                              letterSpacing: -0.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.grey[800] : Colors.grey[200],
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.expand_more, color: AppColors.primary, size: 20),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Row(
-                            children: PropertiesData.categories.map((category) {
-                              String translatedName = context.tr(category.name.toLowerCase());
-                              if (translatedName == category.name.toLowerCase()) translatedName = category.name;
-                              return CategoryPill(
-                                name: translatedName,
-                                isActive: _selectedCategory == category.name,
-                                onPress: () {
-                                  setState(() => _selectedCategory = category.name);
-                                  _fetchProperties();
-                                },
-                              );
-                            }).toList(),
                           ),
                         ),
 
@@ -430,7 +622,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         size: 16, color: AppColors.primary),
                                     const SizedBox(width: 8),
                                     Text(
-                                      _isLoading ? '...' : '${_properties.length} ${_properties.length == 1 ? context.tr('property_singular') : context.tr('property_plural')}',
+                                      _isLoading ? '...' : _selectedCategory == 'Agents' ? '${_agents.length} ${context.tr('agents') ?? 'Agents'}' : '${_properties.length} ${_properties.length == 1 ? context.tr('property_singular') : context.tr('property_plural')}',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
@@ -483,7 +675,44 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
                       ),
                     )
-                  else if (_properties.isNotEmpty)
+                  else if (_selectedCategory == 'Agents' && _agents.isNotEmpty)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final agent = _agents[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: theme.cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: isDark ? DarkColors.border : LightColors.border),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                backgroundImage: agent['full_avatar_url'] != null ? NetworkImage(agent['full_avatar_url']) : null,
+                                child: agent['full_avatar_url'] == null ? const Icon(Icons.person, color: AppColors.primary) : null,
+                              ),
+                              title: Text(
+                                agent['name'] ?? 'Unknown',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                              ),
+                              subtitle: Text(
+                                '${agent['properties_count'] ?? 0} ${context.tr('properties')}',
+                                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
+                              onTap: () {
+                                // TODO: Navigate to Agent Profile
+                              },
+                            ),
+                          );
+                        }, childCount: _agents.length),
+                      ),
+                    )
+                  else if (_selectedCategory != 'Agents' && _properties.isNotEmpty)
                       SliverPadding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           sliver: SliverGrid(
@@ -586,6 +815,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       setState(() {
                                         _searchQuery = '';
                                         _selectedCategory = 'All';
+                                        _appliedFilters = null;
                                       });
                                       _fetchProperties();
                                     },

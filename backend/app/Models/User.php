@@ -32,6 +32,32 @@ class User extends Authenticatable
         ];
     }
 
+    protected $appends = ['full_avatar_url'];
+
+    public function getFullAvatarUrlAttribute(): ?string
+    {
+        $avatar = $this->attributes['avatar'] ?? null;
+        if (!$avatar) {
+            return null;
+        }
+
+        if (str_starts_with($avatar, 'http://') || str_starts_with($avatar, 'https://')) {
+            if (str_contains($avatar, 'localhost') || str_contains($avatar, '127.0.0.1')) {
+                // If it's a local full URL, extract path and use proxy
+                // Example: http://127.0.0.1:8888/storage/avatars/img.jpg 
+                $path = parse_url($avatar, PHP_URL_PATH);
+                if (str_starts_with($path, '/storage/')) {
+                    $path = substr($path, 9); // remove /storage/
+                }
+                return url('/proxy/storage/' . ltrim($path, '/'));
+            }
+            return $avatar;
+        }
+
+        // Relative paths (e.g. avatars/xxx.jpg)
+        return url('/proxy/storage/' . ltrim($avatar, '/'));
+    }
+
     public function properties()
     {
         return $this->hasMany(Property::class);

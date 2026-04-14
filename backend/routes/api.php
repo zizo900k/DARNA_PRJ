@@ -31,6 +31,7 @@ Route::get('/properties/{property}', [PropertyController::class, 'show']);
 
 Route::get('/locations', [PropertyController::class, 'locations']);
 Route::get('/stats', [PropertyController::class, 'stats']);
+Route::get('/agents', [\App\Http\Controllers\Api\AgentController::class, 'index']);
 
 // Categories
 Route::get('/categories',          [CategoryController::class, 'index']);

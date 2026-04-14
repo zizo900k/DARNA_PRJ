@@ -31,13 +31,16 @@ class PropertyController extends Controller
             $query->where('featured', true);
         }
 
-        // Search by title or description
+        // Search by title or description or location or owner name
         if ($request->has('search') && !empty($request->search)) {
             $keyword = '%' . $request->search . '%';
             $query->where(function ($q) use ($keyword) {
                 $q->where('title', 'like', $keyword)
                   ->orWhere('description', 'like', $keyword)
-                  ->orWhere('location', 'like', $keyword);
+                  ->orWhere('location', 'like', $keyword)
+                  ->orWhereHas('user', function($qUser) use ($keyword) {
+                      $qUser->where('name', 'like', $keyword);
+                  });
             });
         }
 
@@ -54,6 +57,22 @@ class PropertyController extends Controller
                 $q->where('price', '<=', $request->max_price)
                   ->orWhere('price_per_month', '<=', $request->max_price);
             });
+        }
+
+        if ($request->has('cashInHand')) {
+            $query->where('price', '<=', $request->cashInHand);
+        }
+
+        if ($request->has('monthlyInstallment')) {
+            $query->where('price_per_month', '<=', $request->monthlyInstallment);
+        }
+
+        if ($request->has('numberOfRooms')) {
+            $query->where('bedrooms', '>=', $request->numberOfRooms);
+        }
+
+        if ($request->has('propertyStatus') && $request->propertyStatus !== 'all') {
+            $query->where('status', $request->propertyStatus);
         }
 
         // Sort

@@ -1,5 +1,5 @@
-﻿import 'package:flutter/material.dart';
-
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
@@ -273,31 +273,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
               );
             },
-            child: Container(
-              width: width,
-              decoration: BoxDecoration(
-                color: isDark ? DarkColors.card : AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    offset: const Offset(0, 4),
-                    blurRadius: 12,
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: item['image'] ?? ((item['photos'] != null && (item['photos'] as List).isNotEmpty) ? item['photos'][0]['url'] : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'),
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
+            child: GestureDetector(
+              onTap: () => context.push('/property/${item['id'] ?? favItem['id']}', extra: {'property': item}),
+              child: Container(
+                width: width,
+                decoration: BoxDecoration(
+                  color: isDark ? DarkColors.card : AppColors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: (() {
+                            if (item['photos'] != null && (item['photos'] as List).isNotEmpty) {
+                              final p = (item['photos'] as List).first;
+                              return p['full_url'] as String? ?? p['url'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                            }
+                            return item['full_url'] as String? ?? item['image'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                          })(),
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
                           height: 140,
                           color: Colors.grey[300],
                           child: const Icon(Icons.image_not_supported, color: Colors.grey),
@@ -337,7 +345,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'MAD ${item['price'] ?? 0}${item['priceType'] == 'month' ? '/month' : ''}',
+                            (() {
+                              final p = item['price'] ?? item['price_per_month'] ?? 0;
+                              final t = item['type'] == 'rent' ? '/month' : '';
+                              return 'MAD $p$t';
+                            })(),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -407,9 +419,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
-          );
+              ), // closes column
+            ), // closes container
+            ), // closes GestureDetector
+          ); // closes tween
         }).toList(),
       ),
     );
@@ -440,31 +453,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ),
               );
             },
-            child: Container(
-              height: 140,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: isDark ? DarkColors.card : AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    offset: const Offset(0, 4),
-                    blurRadius: 12,
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Row(
-                children: [
-                  Stack(
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: item['image'] ?? ((item['photos'] != null && (item['photos'] as List).isNotEmpty) ? item['photos'][0]['url'] : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'),
-                        width: 120,
-                        height: 140,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
+            child: GestureDetector(
+              onTap: () => context.push('/property/${item['id'] ?? favItem['id']}', extra: {'property': item}),
+              child: Container(
+                height: 140,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? DarkColors.card : AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Row(
+                  children: [
+                    Stack(
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: (() {
+                            if (item['photos'] != null && (item['photos'] as List).isNotEmpty) {
+                              final p = (item['photos'] as List).first;
+                              return p['full_url'] as String? ?? p['url'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                            }
+                            return item['full_url'] as String? ?? item['image'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                          })(),
+                          width: 120,
+                          height: 140,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
                           width: 120,
                           height: 140,
                           color: Colors.grey[300],
@@ -579,7 +600,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'MAD ${(item['price'] ?? 0).toString()}${item['priceType'] == 'month' ? '/month' : ''}',
+                            (() {
+                              final p = item['price'] ?? item['price_per_month'] ?? 0;
+                              final t = item['type'] == 'rent' ? '/month' : '';
+                              return 'MAD $p$t';
+                            })(),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -606,9 +631,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
-          );
+              ), // closes row
+            ), // closes container
+            ), // closes GestureDetector
+          ); // closes tween
         }).toList(),
       ),
     );

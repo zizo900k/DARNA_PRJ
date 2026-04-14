@@ -301,9 +301,11 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
   Future<void> _openChat() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    
     if (!authProvider.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('require_login'))),
+        SnackBar(content: Text(langProvider.translate('require_login'))),
       );
       return;
     }
@@ -311,14 +313,14 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final ownerId = _property['user_id'] ?? _property['user']?['id'];
     if (ownerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('error') + 'Owner not found')),
+        SnackBar(content: Text(langProvider.translate('error') + 'Owner not found')),
       );
       return;
     }
 
     if (ownerId == authProvider.user?['id']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('cannot_chat_own'))),
+        SnackBar(content: Text(langProvider.translate('cannot_chat_own'))),
       );
       return;
     }
@@ -333,7 +335,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       if (conv['is_new'] == true) {
         await ChatService.sendMessage(
           conv['id'] as int,
-          context.tr('chat_auto_message'),
+          langProvider.translate('chat_auto_message'),
         );
       }
 
@@ -347,7 +349,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('error')} $e')),
+          SnackBar(content: Text('${langProvider.translate('error')} $e')),
         );
       }
     }
@@ -417,17 +419,25 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final rawImages = (_property['photos'] as List?) ?? (_property['images'] as List?) ?? [];
     final images = rawImages.map((img) {
       if (img is String) return img;
-      if (img is Map && img.containsKey('url')) return img['url'] as String;
-      return 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800';
+      if (img is Map) {
+        return (img['full_url'] as String?) ?? (img['url'] as String?) ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+      }
+      return 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
     }).toList();
     
     final agent = _property['user'] ?? _property['agent'] ?? {
       'name': 'Unknown Agent',
-      'avatar': 'https://i.pravatar.cc/150?img=12',
+      'avatar': 'https://ui-avatars.com/api/?name=Unknown+Agent',
       'role': 'Property Owner',
     };
-    final agentAvatar = agent['profile_picture'] ?? agent['avatar'] ?? 'https://i.pravatar.cc/150?img=12';
-    final agentName = agent['name'] ?? 'Unknown Agent';
+    final agentName = agent['name'] ?? agent['full_name'] ?? 'Unknown Agent';
+    final agentAvatar = agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(agentName)}';
+    
+    // Safety check for unsplash / pravatar which block CORS
+    String finalAgentAvatar = agentAvatar.toString();
+    if (finalAgentAvatar.contains('unsplash.com') || finalAgentAvatar.contains('pravatar.cc')) {
+      finalAgentAvatar = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(agentName)}';
+    }
     final agentRole = agent['role'] ?? 'Property Owner';
     final agentPhone = _property['phone_number'] ?? agent['phone'] ?? '+212600000000';
     final propertyAddress = _property['address'] ?? _property['location'] ?? 'Unknown location';
@@ -495,7 +505,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       : Hero(
                           tag: widget.heroTag ?? 'property_image_${_property['id']}',
                           child: Image.network(
-                            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+                            'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -712,10 +722,14 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(25),
                             child: CachedNetworkImage(
-                              imageUrl: agentAvatar,
+                              imageUrl: finalAgentAvatar,
                               width: 50,
                               height: 50,
                               fit: BoxFit.cover,
+                              errorWidget: (context, error, stackTrace) => Container(
+                                color: Colors.grey.withValues(alpha: 0.2),
+                                child: const Icon(Icons.person, size: 24, color: Colors.grey),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),

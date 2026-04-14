@@ -297,9 +297,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   (() {
                                     if (listing['photos'] is List && (listing['photos'] as List).isNotEmpty) {
                                       final photo = (listing['photos'] as List).first;
-                                      if (photo is Map) return photo['url'] as String? ?? 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400';
+                                      if (photo is Map) return photo['full_url'] as String? ?? photo['url'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
                                     }
-                                    return (listing['image'] as String?) ?? 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400';
+                                    return (listing['full_url'] as String?) ?? (listing['image'] as String?) ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
                                   })(),
                                   width: double.infinity,
                                   height: 140,
@@ -569,9 +569,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: Image.network(
-                                  (user?['avatar'] != null && user!['avatar'].toString().startsWith('http')) 
-                                      ? user['avatar'].toString() 
-                                      : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent((user?['full_name'] ?? user?['name'] ?? 'User').toString())}',
+                                  (() {
+                                    final avatarUrl = user?['full_avatar_url'] ?? user?['avatar'];
+                                    if (avatarUrl != null && avatarUrl.toString().startsWith('http')) {
+                                      return avatarUrl.toString();
+                                    }
+                                    return 'https://ui-avatars.com/api/?name=${Uri.encodeComponent((user?['full_name'] ?? user?['name'] ?? 'User').toString())}';
+                                  })(),
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => Container(
                                     color: Colors.grey.withValues(alpha: 0.2),

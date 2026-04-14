@@ -1,4 +1,4 @@
-﻿class Category {
+class Category {
   final int id;
   final String name;
 
@@ -82,8 +82,8 @@ class Property {
       rating: json['rating'] != null ? double.parse(json['rating'].toString()) : 0.0,
       // Handle the image mapping robustly. Check if there are photos.
       image: (json['photos'] != null && (json['photos'] as List).isNotEmpty)
-          ? json['photos'][0]['url']
-          : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+          ? (json['photos'][0]['full_url'] ?? json['photos'][0]['url'] ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image')
+          : 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image',
       featured: json['featured'] == 1 || json['featured'] == true,
       propertyLabel: json['property_label'],
     );

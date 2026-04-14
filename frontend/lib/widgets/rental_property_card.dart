@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../data/properties_data.dart';
@@ -20,6 +20,8 @@ class RentalPropertyCard extends StatelessWidget {
   String _formatPrice() {
     if (property.pricePerMonth != null) {
       return property.pricePerMonth!.toStringAsFixed(0);
+    } else if (property.price != null) {
+      return property.price!.toStringAsFixed(0);
     }
     return 'N/A';
   }
