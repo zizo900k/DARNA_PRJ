@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +54,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout',    [AuthController::class, 'logout']);
     Route::get('/profile/listings', [AuthController::class, 'listings']);
     Route::get('/profile/stats',    [AuthController::class, 'stats']);
+    Route::post('/users/ping',      [AuthController::class, 'ping']);
+    Route::get('/users/{id}/status', [AuthController::class, 'userStatus']);
 
     // Properties CRUD
     Route::post('/properties',               [PropertyController::class, 'store']);
@@ -103,4 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/{id}/messages',      [ChatController::class, 'messages']);
     Route::post('/conversations/{id}/messages',     [ChatController::class, 'sendMessage']);
     Route::put('/conversations/{id}/read',          [ChatController::class, 'markAsRead']);
+    Route::put('/conversations/{id}/delivered',     [ChatController::class, 'markDelivered']);
+    Route::delete('/conversations/{id}/messages/{msgId}/for-me',       [ChatController::class, 'deleteForMe']);
+    Route::delete('/conversations/{id}/messages/{msgId}/for-everyone', [ChatController::class, 'deleteForEveryone']);
 });

@@ -48,6 +48,10 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.2.0
 
+  mapbox_maps_flutter: ^2.22.0
+  geolocator: ^11.1.0
+  dart_pusher_channels: ^1.2.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

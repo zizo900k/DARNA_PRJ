@@ -6,6 +6,10 @@ import '../theme/language_provider.dart';
 import '../theme/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../services/chat_service.dart';
+import '../services/websocket_service.dart';
+import '../services/api_service.dart';
+import 'dart:convert';
+import 'dart:async';
 
 class ChatScreen extends StatefulWidget {
   final int conversationId;
@@ -29,15 +33,108 @@ class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
+  bool _isOtherTyping = false;
+  Timer? _typingTimer;
+  Timer? _presenceTimer;
+  bool _isOtherOnline = false;
+  String? _lastSeenAt;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
+    WebSocketService().subscribe('private-conversation.${widget.conversationId}', _onMessageEvent);
+    _fetchPresence();
+    _presenceTimer = Timer.periodic(const Duration(seconds: 30), (_) => _fetchPresence());
+  }
+
+  Future<void> _fetchPresence() async {
+    final otherId = widget.otherUser?['id'];
+    if (otherId == null) return;
+    try {
+      final status = await ChatService.getUserStatus(otherId);
+      if (mounted) {
+        setState(() {
+          _isOtherOnline = status['is_online'] == true;
+          _lastSeenAt = status['last_seen_at'];
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _onMessageEvent(dynamic event) {
+    if (event.eventName == 'message.sent' || event.eventName == r'App\Events\MessageSent') {
+      try {
+        final data = json.decode(event.data);
+        final message = data['message'] ?? data;
+        
+        final authProvider = context.read<AuthProvider>();
+        if (message['sender_id'] == authProvider.user?['id']) return;
+
+        if (mounted) {
+          setState(() {
+            _messages.add(message);
+            _isOtherTyping = false;
+          });
+          _typingTimer?.cancel();
+          _scrollToBottom();
+          // We received a message while in the chat screen, it is immediately read
+          ChatService.markAsRead(widget.conversationId).then((_) {
+             if (mounted) context.read<ChatProvider>().fetchUnreadCount();
+          });
+        }
+      } catch(e) {
+        debugPrint('Error parsing realtime message: $e');
+      }
+    } else if (event.eventName == 'message.status_updated' || event.eventName == r'App\Events\MessageStatusUpdated') {
+      _reloadMessagesSilent();
+    } else if (event.eventName == 'client-typing') {
+      if (mounted) {
+        setState(() {
+          _isOtherTyping = true;
+        });
+        _scrollToBottom();
+        _typingTimer?.cancel();
+        _typingTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _isOtherTyping = false);
+        });
+      }
+    } else if (event.eventName == 'message.deleted' || event.eventName == r'App\Events\MessageDeleted') {
+      try {
+        final data = json.decode(event.data);
+        final msgId = data['message_id'] ?? data['id'];
+        final deletedForEveryone = data['deleted_for_everyone'] == true;
+        if (mounted && deletedForEveryone && msgId != null) {
+          setState(() {
+            final idx = _messages.indexWhere((m) => m['id'] == msgId);
+            if (idx != -1) {
+              // Copy to mutable map — JSON-decoded maps are unmodifiable
+              final mutable = Map<String, dynamic>.from(_messages[idx]);
+              mutable['deleted_for_everyone_at'] = DateTime.now().toIso8601String();
+              _messages[idx] = mutable;
+            }
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _reloadMessagesSilent() async {
+    try {
+      final data = await ChatService.getMessages(widget.conversationId);
+      if (mounted) {
+        setState(() {
+          _messages = data;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _typingTimer?.cancel();
+    _presenceTimer?.cancel();
+    WebSocketService().unsubscribe('private-conversation.${widget.conversationId}');
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -110,69 +207,108 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUserId = authProvider.user?['id'];
 
     final otherName = widget.otherUser?['name'] ?? 'User';
-    final otherAvatar = widget.otherUser?['avatar'];
+    String? otherAvatarUrl = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
+    if (otherAvatarUrl != null && otherAvatarUrl.isNotEmpty && !otherAvatarUrl.startsWith('http')) {
+      final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
+      // Use proxy/storage prefix for relative paths
+      otherAvatarUrl = '$baseUrl/proxy/storage/' + otherAvatarUrl.replaceFirst('/', '');
+    }
     final propertyTitle = widget.property?['title'];
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: otherAvatar != null && otherAvatar.toString().isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: otherAvatar,
-                      width: 36,
-                      height: 36,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _buildInitialsAvatar(otherName, 36),
-                    )
-                  : _buildInitialsAvatar(otherName, 36),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          backgroundColor: isDark ? DarkColors.background : LightColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.textTheme.bodyLarge?.color, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Stack(
                 children: [
-                  Text(
-                    otherName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: theme.textTheme.bodyLarge?.color,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        if (_isOtherOnline)
+                          BoxShadow(
+                            color: AppColors.success.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: otherAvatarUrl != null && otherAvatarUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: otherAvatarUrl,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => _buildInitialsAvatar(otherName, 40),
+                            )
+                          : _buildInitialsAvatar(otherName, 40),
                     ),
                   ),
-                  if (propertyTitle != null)
-                    Text(
-                      propertyTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary.withValues(alpha: 0.8),
+                  if (_isOtherOnline)
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
+                        ),
                       ),
                     ),
                 ],
               ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: theme.textTheme.bodyMedium?.color),
-            onPressed: _loadMessages,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      otherName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: theme.textTheme.bodyLarge?.color,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    _buildSubtitleText(context, theme, propertyTitle),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+             IconButton(
+               icon: Icon(Icons.info_outline_rounded, color: theme.textTheme.bodyMedium?.color),
+               onPressed: () {},
+             ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              color: isDark ? DarkColors.divider : LightColors.divider,
+            ),
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -180,7 +316,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-                : _messages.isEmpty
+                : (_messages.isEmpty && !_isOtherTyping)
                     ? Center(
                         child: Text(
                           context.tr('no_messages'),
@@ -190,11 +326,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     : ListView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        itemCount: _messages.length,
+                        itemCount: _messages.length + (_isOtherTyping ? 1 : 0),
                         itemBuilder: (ctx, i) {
+                          // Typing bubble as last item
+                          if (i == _messages.length && _isOtherTyping) {
+                            return _buildTypingBubble(theme, isDark);
+                          }
                           final msg = _messages[i];
                           final isMine = msg['sender_id'] == currentUserId;
-                          return _buildBubble(msg, isMine, theme, isDark);
+                          return _buildBubble(msg, isMine, theme, isDark, currentUserId);
                         },
                       ),
           ),
@@ -205,63 +345,239 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildBubble(Map<String, dynamic> msg, bool isMine, ThemeData theme, bool isDark) {
+  Widget _buildBubble(Map<String, dynamic> msg, bool isMine, ThemeData theme, bool isDark, dynamic currentUserId) {
     final time = _formatMsgTime(msg['created_at']?.toString());
-    final isRead = msg['status'] == 'read';
+    final isRead = msg['read_at'] != null || msg['status'] == 'read';
+    final isDelivered = msg['delivered_at'] != null;
+    final isDeletedForEveryone = msg['deleted_for_everyone_at'] != null;
 
-    return Align(
-      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isMine
-              ? AppColors.primary
-              : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isMine ? const Radius.circular(16) : const Radius.circular(4),
-            bottomRight: isMine ? const Radius.circular(4) : const Radius.circular(16),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(
-              msg['message']?.toString() ?? '',
-              style: TextStyle(
-                fontSize: 14,
-                color: isMine ? Colors.white : theme.textTheme.bodyLarge?.color,
-                height: 1.4,
-              ),
+    final otherAvatar = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
+    final otherName = widget.otherUser?['name'] ?? 'User';
+    final authProvider = context.read<AuthProvider>();
+    final myAvatar = authProvider.user?['full_avatar_url'] ?? authProvider.user?['avatar'];
+    final myName = authProvider.user?['name'] ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMine) ...[
+            _buildSmallAvatar(otherAvatar?.toString(), otherName, 26),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: GestureDetector(
+              onLongPress: isDeletedForEveryone ? null : () => _showDeleteMenu(msg, isMine),
+              child: Container(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: (isMine && !isDeletedForEveryone) 
+                ? const LinearGradient(colors: [AppColors.primary, AppColors.primaryDark], begin: Alignment.topLeft, end: Alignment.bottomRight) 
+                : null,
+            color: isDeletedForEveryone
+                ? (isDark ? DarkColors.backgroundSecondary.withValues(alpha: 0.5) : Colors.grey.shade100)
+                : !isMine
+                    ? (isDark ? DarkColors.card : Colors.white)
+                    : null,
+            border: (!isMine && !isDeletedForEveryone) ? Border.all(color: isDark ? DarkColors.divider : LightColors.divider, width: 1) : null,
+            boxShadow: [
+               if (!isDeletedForEveryone)
+                  BoxShadow(
+                    color: (isMine ? AppColors.primary : Colors.black).withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+            ],
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(20),
+              topRight: const Radius.circular(20),
+              bottomLeft: isMine ? const Radius.circular(20) : const Radius.circular(6),
+              bottomRight: isMine ? const Radius.circular(6) : const Radius.circular(20),
             ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          ),
+          child: Column(
+            crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              if (isDeletedForEveryone)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.block, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                    const SizedBox(width: 6),
+                    Text(
+                      context.tr('message_deleted'),
+                      style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                    ),
+                  ],
+                )
+              else
                 Text(
-                  time,
+                  msg['message']?.toString() ?? '',
                   style: TextStyle(
-                    fontSize: 10,
-                    color: isMine
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                    fontSize: 15, 
+                    color: isMine ? Colors.white : theme.textTheme.bodyLarge?.color, 
+                    height: 1.4,
+                    letterSpacing: -0.2
                   ),
                 ),
-                if (isMine) ...[
-                  const SizedBox(width: 4),
-                  Icon(
-                    isRead ? Icons.done_all : Icons.done,
-                    size: 14,
-                    color: isRead ? const Color(0xFF34B7F1) : Colors.white.withValues(alpha: 0.7),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: isDeletedForEveryone
+                          ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4)
+                          : isMine ? Colors.white.withValues(alpha: 0.7) : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                    ),
                   ),
+                  if (isMine && !isDeletedForEveryone) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      isRead ? Icons.done_all_rounded : (isDelivered ? Icons.done_all_rounded : Icons.check_rounded),
+                      size: 14,
+                      color: isRead ? const Color(0xFF34B7F1).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
+      ),
+    ), // <-- Closes Flexible
+    if (isMine) ...[
+      const SizedBox(width: 8),
+      _buildSmallAvatar(myAvatar, myName, 26),
+    ],
+  ],
+),
+);
+  }
+
+  void _showDeleteMenu(Map<String, dynamic> msg, bool isMine) {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: Colors.grey.shade400, borderRadius: BorderRadius.circular(2))),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: Colors.red.shade400),
+                title: Text(context.tr('delete_for_me')),
+                onTap: () { Navigator.pop(ctx); _deleteForMe(msg['id'] is int ? msg['id'] as int : int.parse(msg['id'].toString())); },
+              ),
+              if (isMine && msg['deleted_for_everyone_at'] == null)
+                ListTile(
+                  leading: Icon(Icons.delete_forever, color: Colors.red.shade700),
+                  title: Text(context.tr('delete_for_everyone')),
+                  onTap: () { Navigator.pop(ctx); _deleteForEveryone(msg['id'] is int ? msg['id'] as int : int.parse(msg['id'].toString())); },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallAvatar(String? url, String name, double size) {
+    String? fullUrl = url;
+    if (fullUrl != null && fullUrl.isNotEmpty) {
+      if (!fullUrl.startsWith('http')) {
+        final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
+        // Ensure relative paths go through proxy
+        fullUrl = '$baseUrl/proxy/storage/' + fullUrl.replaceFirst('/', '');
+      }
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size / 2),
+        child: CachedNetworkImage(
+          imageUrl: fullUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorWidget: (_, __, ___) => _buildInitialsAvatar(name, size),
+        ),
+      );
+    }
+    return _buildInitialsAvatar(name, size);
+  }
+
+  Future<void> _deleteForMe(int messageId) async {
+    try {
+      await ChatService.deleteMessageForMe(widget.conversationId, messageId);
+      if (mounted) setState(() => _messages.removeWhere((m) => m['id'].toString() == messageId.toString()));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error')} $e')));
+    }
+  }
+
+  Future<void> _deleteForEveryone(int messageId) async {
+    debugPrint('🗑️ deleteForEveryone called: msgId=$messageId, convId=${widget.conversationId}');
+    try {
+      await ChatService.deleteMessageForEveryone(widget.conversationId, messageId);
+      debugPrint('✅ API call succeeded');
+      if (mounted) {
+        setState(() {
+          final idx = _messages.indexWhere((m) => m['id'].toString() == messageId.toString());
+          debugPrint('🔍 Found message at idx=$idx');
+          if (idx != -1) {
+            // Copy to mutable map — JSON-decoded maps are unmodifiable
+            final mutable = Map<String, dynamic>.from(_messages[idx]);
+            mutable['deleted_for_everyone_at'] = DateTime.now().toIso8601String();
+            _messages[idx] = mutable;
+            debugPrint('🔄 State updated: deleted_for_everyone_at set');
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ deleteForEveryone error: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error')} $e')));
+    }
+  }
+
+  Widget _buildTypingBubble(ThemeData theme, bool isDark) {
+    final otherAvatar = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
+    final otherName = widget.otherUser?['name'] ?? 'User';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _buildSmallAvatar(otherAvatar?.toString(), otherName, 26),
+          const SizedBox(width: 8),
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: _isOtherTyping ? 1.0 : 0.0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? DarkColors.card : Colors.white,
+                border: Border.all(color: isDark ? DarkColors.divider : LightColors.divider, width: 1),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(6),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
+              child: const _TypingDotsAnimation(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -270,65 +586,71 @@ class _ChatScreenState extends State<ChatScreen> {
     return Container(
       padding: EdgeInsets.only(
         left: 16,
-        right: 8,
-        top: 10,
-        bottom: MediaQuery.of(context).padding.bottom + 10,
+        right: 12,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          ),
-        ],
+        color: isDark ? DarkColors.background : LightColors.background,
+        border: Border(top: BorderSide(color: isDark ? DarkColors.divider : LightColors.divider, width: 1)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
                 borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: isDark ? DarkColors.divider : LightColors.divider, width: 1),
               ),
               child: TextField(
                 controller: _messageController,
                 maxLines: 4,
                 minLines: 1,
                 textInputAction: TextInputAction.send,
+                onChanged: (_) {
+                  WebSocketService().triggerEvent(
+                    'private-conversation.${widget.conversationId}', 
+                    'client-typing', 
+                    {}
+                  );
+                },
                 onSubmitted: (_) => _sendMessage(),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   color: theme.textTheme.bodyLarge?.color,
                 ),
                 decoration: InputDecoration(
                   hintText: context.tr('type_message'),
-                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                  hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           GestureDetector(
             onTap: _sendMessage,
             child: Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF16A085)]),
-                borderRadius: BorderRadius.circular(22),
+                gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))
+                ]
               ),
               alignment: Alignment.center,
               child: _isSending
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                     )
-                  : const Icon(Icons.send, color: Colors.white, size: 20),
+                  : const Icon(Icons.send_rounded, color: Colors.white, size: 22),
             ),
           ),
         ],
@@ -341,7 +663,11 @@ class _ChatScreenState extends State<ChatScreen> {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(size / 2),
       ),
       alignment: Alignment.center,
@@ -349,8 +675,8 @@ class _ChatScreenState extends State<ChatScreen> {
         name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: TextStyle(
           fontSize: size * 0.45,
-          fontWeight: FontWeight.w700,
-          color: AppColors.primary,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
         ),
       ),
     );
@@ -359,12 +685,146 @@ class _ChatScreenState extends State<ChatScreen> {
   String _formatMsgTime(String? dateStr) {
     if (dateStr == null) return '';
     try {
-      final date = DateTime.parse(dateStr);
+      final date = DateTime.parse(dateStr).toLocal();
       final h = date.hour.toString().padLeft(2, '0');
       final m = date.minute.toString().padLeft(2, '0');
       return '$h:$m';
     } catch (_) {
       return '';
     }
+  }
+
+  Widget _buildSubtitleText(BuildContext context, ThemeData theme, String? propertyTitle) {
+    // Priority: typing (now shown as bubble) > online > last seen > property
+    if (_isOtherTyping) {
+      return Text(
+        context.tr('typing'),
+        style: const TextStyle(
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+          color: AppColors.primary,
+        ),
+      );
+    }
+
+    if (_isOtherOnline) {
+      return Text(
+        context.tr('online'),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF4CAF50),
+        ),
+      );
+    }
+
+    if (_lastSeenAt != null) {
+      return Text(
+        _formatLastSeen(_lastSeenAt!),
+        style: TextStyle(
+          fontSize: 12,
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+        ),
+      );
+    }
+
+    if (propertyTitle != null) {
+      return Text(
+        propertyTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 12,
+          color: AppColors.primary.withValues(alpha: 0.8),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  String _formatLastSeen(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(date);
+
+      if (diff.inMinutes < 2) return 'just now';
+      if (diff.inMinutes < 60) return 'last seen ${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return 'last seen ${diff.inHours}h ago';
+      final h = date.hour.toString().padLeft(2, '0');
+      final m = date.minute.toString().padLeft(2, '0');
+      return 'last seen ${date.day}/${date.month} at $h:$m';
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+/// Animated 3-dot typing indicator widget
+class _TypingDotsAnimation extends StatefulWidget {
+  const _TypingDotsAnimation();
+
+  @override
+  State<_TypingDotsAnimation> createState() => _TypingDotsAnimationState();
+}
+
+class _TypingDotsAnimationState extends State<_TypingDotsAnimation> with TickerProviderStateMixin {
+  late final List<AnimationController> _controllers;
+  late final List<Animation<double>> _animations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (i) =>
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 600),
+      ),
+    );
+    _animations = _controllers.map((c) =>
+      Tween<double>(begin: 0, end: -6).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      ),
+    ).toList();
+
+    // Stagger the animations
+    for (int i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 180), () {
+        if (mounted) _controllers[i].repeat(reverse: true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) =>
+        AnimatedBuilder(
+          animation: _animations[i],
+          builder: (_, __) => Transform.translate(
+            offset: Offset(0, _animations[i].value),
+            child: Container(
+              width: 8,
+              height: 8,
+              margin: EdgeInsets.only(right: i < 2 ? 4 : 0),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -90,6 +90,12 @@ class LanguageProvider with ChangeNotifier {
       'send': 'Send',
       'chat_auto_message': 'Salam, I am interested in this property.',
       'cannot_chat_own': 'You cannot chat with yourself about your own property.',
+      'typing': 'typing...',
+      'online': 'Online',
+      'last_seen': 'last seen',
+      'delete_for_me': 'Delete for me',
+      'delete_for_everyone': 'Delete for everyone',
+      'message_deleted': 'This message was deleted',
       // Property Details
       'bedrooms': 'Bedrooms',
       'bathroom': 'Bathroom',
@@ -307,6 +313,12 @@ class LanguageProvider with ChangeNotifier {
       'send': 'Envoyer',
       'chat_auto_message': 'Bonjour, je suis intéressé par ce bien.',
       'cannot_chat_own': 'Vous ne pouvez pas discuter de votre propre propriété.',
+      'typing': 'en train d\'écrire...',
+      'online': 'En ligne',
+      'last_seen': 'dernière connexion',
+      'delete_for_me': 'Supprimer pour moi',
+      'delete_for_everyone': 'Supprimer pour tout le monde',
+      'message_deleted': 'Ce message a été supprimé',
       // Property Details
       'bedrooms': 'Chambres',
       'bathroom': 'Salle de bain',
@@ -523,6 +535,12 @@ class LanguageProvider with ChangeNotifier {
       'send': 'إرسال',
       'chat_auto_message': 'سلام، أنا مهتم بهذا العقار.',
       'cannot_chat_own': 'لا يمكنك الدردشة حول عقارك الخاص.',
+      'typing': 'يكتب...',
+      'online': 'متصل',
+      'last_seen': 'آخر ظهور',
+      'delete_for_me': 'حذف عندي',
+      'delete_for_everyone': 'حذف عند الجميع',
+      'message_deleted': 'تم حذف هذه الرسالة',
       // Property Details
       'bedrooms': 'غرف نوم',
       'bathroom': 'حمام',
@@ -694,5 +712,5 @@ class LanguageProvider with ChangeNotifier {
 }
 
 extension LocalizationExtension on BuildContext {
-  String tr(String key) => Provider.of<LanguageProvider>(this).translate(key);
+  String tr(String key) => Provider.of<LanguageProvider>(this, listen: false).translate(key);
 }

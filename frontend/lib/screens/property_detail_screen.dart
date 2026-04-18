@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,6 +13,8 @@ import '../services/property_service.dart';
 import '../services/transaction_service.dart';
 import '../theme/auth_provider.dart';
 import 'package:intl/intl.dart';
+import '../widgets/map/mapbox_widget.dart';
+import '../config/map_config.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? property;
@@ -942,11 +945,21 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 ? DarkColors.backgroundSecondary
                                 : LightColors.backgroundSecondary,
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                           ),
                           alignment: Alignment.center,
-                          child: Text(context.tr('map_view'),
-                              style: TextStyle(
-                                  color: theme.textTheme.bodyMedium?.color)),
+                          clipBehavior: Clip.antiAlias,
+                          child: _property['latitude'] != null && _property['longitude'] != null
+                             ? MapboxWidget(
+                                 initialLatitude: double.tryParse(_property['latitude'].toString()),
+                                 initialLongitude: double.tryParse(_property['longitude'].toString()),
+                                 isPicker: false,
+                                 mapStyle: MapStyle.premium3D,
+                               )
+                             : Text(
+                                 _property['latitude'] != null ? context.tr('map_view') : '',
+                                 style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                               ),
                         ),
                       ],
                     ),

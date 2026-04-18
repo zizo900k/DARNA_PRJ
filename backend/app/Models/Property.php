@@ -8,7 +8,7 @@ class Property extends Model
 {
     protected $fillable = [
         'title', 'description', 'price', 'price_per_month', 'area',
-        'location', 'featured', 'facilities', 'type', 'status',
+        'location', 'latitude', 'longitude', 'featured', 'facilities', 'type', 'status',
         'phone_number', 'user_id', 'category_id', 'bedrooms', 'bathrooms', 'rating',
         'balcony', 'kitchens', 'toilets', 'living_rooms', 'total_rooms'
     ];
@@ -16,6 +16,8 @@ class Property extends Model
     protected $casts = [
         'facilities' => 'array',
         'featured' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function user()

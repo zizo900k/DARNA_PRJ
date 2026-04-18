@@ -9,6 +9,7 @@ import '../services/property_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
 import '../theme/language_provider.dart';
+import '../widgets/location_picker_map.dart';
 
 class UpdateListingScreen extends StatefulWidget {
   final int propertyId;
@@ -49,6 +50,8 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
   final List<XFile> _newPhotos = [];
   final ImagePicker _picker = ImagePicker();
   late int _categoryId;
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
@@ -68,6 +71,8 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
     }
     
     _location = p['location'] ?? 'Laayoune, Bloc H';
+    if (p['latitude'] != null) _latitude = double.tryParse(p['latitude'].toString());
+    if (p['longitude'] != null) _longitude = double.tryParse(p['longitude'].toString());
     
     // Formatting price from double to string safely
     final rawPrice = p['price'] ?? p['price_per_month'] ?? '3500';
@@ -157,6 +162,8 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
         'total_rooms': _totalRooms,
         'facilities': _facilities,
         'phone_number': _phoneNumber,
+        if (_latitude != null) 'latitude': _latitude,
+        if (_longitude != null) 'longitude': _longitude,
       });
 
       if (_newPhotos.isNotEmpty) {
@@ -361,44 +368,15 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Container(
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          children: [
-                            const Center(child: Text("Map placeholder...")),
-                            Positioned(
-                              bottom: 12,
-                              left: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: theme.scaffoldBackgroundColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.location_on, size: 16, color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      context.tr('edit_location'),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.textTheme.bodyLarge?.color,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      LocationPickerMap(
+                        initialLatitude: _latitude,
+                        initialLongitude: _longitude,
+                        onLocationSelected: (lat, lng) {
+                          setState(() {
+                            _latitude = lat;
+                            _longitude = lng;
+                          });
+                        },
                       ),
                       const SizedBox(height: 24),
 

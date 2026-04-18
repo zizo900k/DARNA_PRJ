@@ -42,10 +42,39 @@ class ChatService {
     await ApiService.put('/conversations/$conversationId/read');
   }
 
+  /// Mark all messages as delivered.
+  static Future<void> markDelivered(int conversationId) async {
+    await ApiService.put('/conversations/$conversationId/delivered');
+  }
+
   /// Get total unread count.
   static Future<int> getUnreadCount() async {
     final response = await ApiService.get('/conversations/unread-count');
     if (response is Map) return response['unread_count'] ?? 0;
     return 0;
+  }
+
+  /// Ping server to update online presence.
+  static Future<void> ping() async {
+    try {
+      await ApiService.post('/users/ping');
+    } catch (_) {}
+  }
+
+  /// Get a user's online status.
+  static Future<Map<String, dynamic>> getUserStatus(int userId) async {
+    final response = await ApiService.get('/users/$userId/status');
+    if (response is Map) return Map<String, dynamic>.from(response);
+    return {'is_online': false, 'last_seen_at': null};
+  }
+
+  /// Delete a message for the current user only.
+  static Future<void> deleteMessageForMe(int conversationId, int messageId) async {
+    await ApiService.delete('/conversations/$conversationId/messages/$messageId/for-me');
+  }
+
+  /// Delete a message for everyone.
+  static Future<void> deleteMessageForEveryone(int conversationId, int messageId) async {
+    await ApiService.delete('/conversations/$conversationId/messages/$messageId/for-everyone');
   }
 }

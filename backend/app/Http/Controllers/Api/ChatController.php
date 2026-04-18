@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\ConversationUpdated;
+use App\Events\MessageSent;
+use App\Events\MessageStatusUpdated;
+use App\Events\MessageDeleted;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\Request;
@@ -26,9 +30,10 @@ class ChatController extends Controller
                 return [
                     'id'             => $conv->id,
                     'other_user'     => $other ? [
-                        'id'     => $other->id,
-                        'name'   => $other->name,
-                        'avatar' => $other->avatar,
+                        'id'              => $other->id,
+                        'name'            => $other->name,
+                        'avatar'          => $other->avatar,
+                        'full_avatar_url' => $other->full_avatar_url,
                     ] : null,
                     'property'       => $conv->property ? [
                         'id'    => $conv->property->id,
@@ -92,9 +97,10 @@ class ChatController extends Controller
             'id'         => $conversation->id,
             'is_new'     => $isNew,
             'other_user' => $other ? [
-                'id'     => $other->id,
-                'name'   => $other->name,
-                'avatar' => $other->avatar,
+                'id'              => $other->id,
+                'name'            => $other->name,
+                'avatar'          => $other->avatar,
+                'full_avatar_url' => $other->full_avatar_url,
             ] : null,
             'property'   => $conversation->property ? [
                 'id'    => $conversation->property->id,
@@ -118,6 +124,10 @@ class ChatController extends Controller
 
         $messages = $conversation->messages()
             ->with('sender:id,name,avatar')
+            ->where(function ($q) use ($userId) {
+                $q->whereNull('deleted_by_users')
+                  ->orWhereRaw('NOT JSON_CONTAINS(deleted_by_users, ?)', [json_encode($userId)]);
+            })
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -156,6 +166,12 @@ class ChatController extends Controller
 
         $message->load('sender:id,name,avatar');
 
+        // Dispatch broadcasting events
+        broadcast(new MessageSent($message));
+
+        $receiverId = $conversation->user1_id === $userId ? $conversation->user2_id : $conversation->user1_id;
+        broadcast(new ConversationUpdated($receiverId, $conversation->id));
+
         return response()->json($message, 201);
     }
 
@@ -174,8 +190,45 @@ class ChatController extends Controller
 
         $updated = $conversation->messages()
             ->where('sender_id', '!=', $userId)
-            ->where('status', 'sent')
-            ->update(['status' => 'read']);
+            ->whereNull('read_at')
+            ->update([
+                'status' => 'read',
+                'read_at' => now(),
+                // If it wasn't marked delivered yet, mark it delivered too
+                'delivered_at' => \DB::raw('COALESCE(delivered_at, NOW())')
+            ]);
+
+        if ($updated > 0) {
+            broadcast(new MessageStatusUpdated($conversationId));
+            
+            // Note: the original unread count also decreased, we could update global count
+            // but the front-end will just fetchUnreadCount on receiving status event.
+        }
+
+        return response()->json(['updated' => $updated]);
+    }
+
+    /**
+     * Mark specific messages as delivered.
+     */
+    public function markDelivered(Request $request, int $conversationId)
+    {
+        $userId = $request->user()->id;
+
+        $conversation = Conversation::where('id', $conversationId)
+            ->where(function ($q) use ($userId) {
+                $q->where('user1_id', $userId)->orWhere('user2_id', $userId);
+            })
+            ->firstOrFail();
+
+        $updated = $conversation->messages()
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('delivered_at')
+            ->update(['delivered_at' => now()]);
+
+        if ($updated > 0) {
+            broadcast(new MessageStatusUpdated($conversationId));
+        }
 
         return response()->json(['updated' => $updated]);
     }
@@ -195,5 +248,55 @@ class ChatController extends Controller
             ->count();
 
         return response()->json(['unread_count' => $count]);
+    }
+
+    /**
+     * Delete a message for the current user only.
+     */
+    public function deleteForMe(Request $request, int $conversationId, int $messageId)
+    {
+        $userId = $request->user()->id;
+
+        $conversation = Conversation::where('id', $conversationId)
+            ->where(function ($q) use ($userId) {
+                $q->where('user1_id', $userId)->orWhere('user2_id', $userId);
+            })
+            ->firstOrFail();
+
+        $message = $conversation->messages()->findOrFail($messageId);
+
+        $deletedBy = $message->deleted_by_users ?? [];
+        if (!in_array($userId, $deletedBy)) {
+            $deletedBy[] = $userId;
+        }
+        $message->update(['deleted_by_users' => $deletedBy]);
+
+        return response()->json(['status' => 'deleted_for_me']);
+    }
+
+    /**
+     * Delete a message for everyone (sender only).
+     */
+    public function deleteForEveryone(Request $request, int $conversationId, int $messageId)
+    {
+        $userId = $request->user()->id;
+
+        $conversation = Conversation::where('id', $conversationId)
+            ->where(function ($q) use ($userId) {
+                $q->where('user1_id', $userId)->orWhere('user2_id', $userId);
+            })
+            ->firstOrFail();
+
+        $message = $conversation->messages()
+            ->where('sender_id', $userId)  // Only the sender can delete for everyone
+            ->findOrFail($messageId);
+
+        $message->update([
+            'deleted_for_everyone_at' => now(),
+        ]);
+
+        broadcast(new MessageDeleted($conversationId, $messageId, true));
+
+        return response()->json(['status' => 'deleted_for_everyone']);
     }
 }

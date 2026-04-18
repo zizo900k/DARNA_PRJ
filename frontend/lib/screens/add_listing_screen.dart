@@ -8,6 +8,7 @@ import '../services/property_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
 import '../theme/language_provider.dart';
+import '../widgets/location_picker_map.dart';
 
 class AddListingScreen extends StatefulWidget {
   const AddListingScreen({super.key});
@@ -40,6 +41,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
   int _livingRooms = 1;
   final List<String> _facilities = ['Parking Lot'];
   String _phoneNumber = '+212 | 624425449';
+  double? _latitude;
+  double? _longitude;
 
   final List<String> _categories = ['House', 'Apartment'];
   final List<String> _facilityOptions = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
@@ -107,6 +110,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
         'total_rooms': _totalRooms,
         'facilities': _facilities,
         'phone_number': _phoneNumber,
+        if (_latitude != null) 'latitude': _latitude,
+        if (_longitude != null) 'longitude': _longitude,
       });
 
       // Upload photos after property is created
@@ -671,58 +676,15 @@ class _AddListingScreenState extends State<AddListingScreen> {
         const SizedBox(height: 24),
 
         // Map View
-        Container(
-          height: 400,
-          decoration: BoxDecoration(
-            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Center(child: Text(context.tr('map_placeholder'))),
-              // Pin
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0D5C63),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 4,
-                    height: 8,
-                    color: const Color(0xFF0D5C63),
-                  ),
-                ],
-              ),
-              Positioned(
-                bottom: 20,
-                child: Text(
-                  'Select on the map',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textTheme.bodyMedium?.color,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        LocationPickerMap(
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+          onLocationSelected: (lat, lng) {
+            setState(() {
+              _latitude = lat;
+              _longitude = lng;
+            });
+          },
         ),
         const SizedBox(height: 40),
       ],

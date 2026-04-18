@@ -19,6 +19,14 @@ class ScaffoldWithNavBar extends StatelessWidget {
       builder: (context, authProvider, chatProvider, _) {
         final unread = chatProvider.unreadCount;
 
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (authProvider.isLoggedIn && authProvider.user != null) {
+            chatProvider.initRealTime(authProvider.user!['id']);
+          } else {
+            chatProvider.stopRealTime();
+          }
+        });
+
         return Scaffold(
           body: navigationShell,
           bottomNavigationBar: NavigationBar(

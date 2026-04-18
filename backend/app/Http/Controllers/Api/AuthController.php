@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -135,6 +136,39 @@ class AuthController extends Controller
         return response()->json([
             'listings' => $user->properties()->count(),
             'reviews'  => \App\Models\Review::where('user_id', $user->id)->count(),
+        ]);
+    }
+
+    /**
+     * Ping online presence.
+     */
+    public function ping(Request $request)
+    {
+        $user = $request->user();
+        
+        // Throttling database updates to once a minute per user to save performance
+        $cacheKey = 'user-ping-' . $user->id;
+        if (!Cache::has($cacheKey)) {
+            $user->update(['last_seen_at' => now()]);
+            Cache::put($cacheKey, true, 60); // lock for 60 seconds
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * Get a user's online status.
+     */
+    public function userStatus(int $id)
+    {
+        $user = User::findOrFail($id);
+        $lastSeen = $user->last_seen_at;
+
+        $isOnline = $lastSeen && $lastSeen->diffInSeconds(now()) < 60;
+
+        return response()->json([
+            'is_online'    => $isOnline,
+            'last_seen_at' => $lastSeen?->toIso8601String(),
         ]);
     }
 }
