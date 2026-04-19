@@ -51,6 +51,10 @@ class ReviewController extends Controller
             'comment'     => $validated['comment'] ?? null,
         ]);
 
+        // Recalculate average rating
+        $avgRating = Review::where('property_id', $property->id)->avg('rating');
+        $property->update(['rating' => round($avgRating, 1)]);
+
         return response()->json([
             'message' => 'Review submitted successfully',
             'review'  => $review->load('user'),
@@ -73,9 +77,14 @@ class ReviewController extends Controller
 
         $review->update($validated);
 
+        // Recalculate average rating
+        $property = $review->property;
+        $avgRating = Review::where('property_id', $property->id)->avg('rating');
+        $property->update(['rating' => round($avgRating, 1)]);
+
         return response()->json([
             'message' => 'Review updated successfully',
-            'review'  => $review,
+            'review'  => $review->load('user'),
         ]);
     }
 
@@ -88,7 +97,13 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
+        $property = $review->property;
         $review->delete();
+
+        // Recalculate average rating
+        $avgRating = Review::where('property_id', $property->id)->avg('rating');
+        $property->update(['rating' => $avgRating ? round($avgRating, 1) : 0]);
+
         return response()->json(['message' => 'Review deleted successfully']);
     }
 }

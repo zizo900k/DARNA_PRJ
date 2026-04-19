@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeToDarnaMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +33,13 @@ class AuthController extends Controller
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // Send welcome email (queued, safe — won't break registration if mail is misconfigured)
+        try {
+            Mail::to($user->email)->send(new WelcomeToDarnaMail($user));
+        } catch (\Throwable $e) {
+            Log::warning('Welcome email failed for user ' . $user->id . ': ' . $e->getMessage());
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -108,6 +118,13 @@ class AuthController extends Controller
                 'password' => Hash::make(Str::random(24)),
                 'avatar' => $googleUser['picture'] ?? null,
             ]);
+
+            // Send welcome email for Google registrations too
+            try {
+                Mail::to($user->email)->send(new WelcomeToDarnaMail($user));
+            } catch (\Throwable $e) {
+                Log::warning('Welcome email failed for Google user ' . $user->id . ': ' . $e->getMessage());
+            }
         }
         
         $token = $user->createToken('auth_token')->plainTextToken;

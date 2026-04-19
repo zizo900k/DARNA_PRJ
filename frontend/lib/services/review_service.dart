@@ -12,5 +12,14 @@ class ReviewService {
     final response = await ApiService.post('/reviews', body: body);
     return response as Map<String, dynamic>;
   }
+
+  static Future<Map<String, dynamic>> updateReview(int reviewId, Map<String, dynamic> data) async {
+    final response = await ApiService.put('/reviews/$reviewId', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  static Future<void> deleteReview(int reviewId) async {
+    await ApiService.delete('/reviews/$reviewId');
+  }
 }
 

@@ -44,15 +44,15 @@ class User extends Authenticatable
 
         if (str_starts_with($avatar, 'http://') || str_starts_with($avatar, 'https://')) {
             if (str_contains($avatar, 'localhost') || str_contains($avatar, '127.0.0.1')) {
-                // If it's a local full URL, extract path and use proxy
-                // Example: http://127.0.0.1:8888/storage/avatars/img.jpg 
+                // Local full URL -> extract path and use proxy
                 $path = parse_url($avatar, PHP_URL_PATH);
                 if (str_starts_with($path, '/storage/')) {
-                    $path = substr($path, 9); // remove /storage/
+                    $path = substr($path, 9);
                 }
                 return url('/proxy/storage/' . ltrim($path, '/'));
             }
-            return $avatar;
+            // External URL (e.g. Google profile picture) -> proxy it to avoid CORS
+            return url('/proxy/external?url=' . urlencode($avatar));
         }
 
         // Relative paths (e.g. avatars/xxx.jpg)

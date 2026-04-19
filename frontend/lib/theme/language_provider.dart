@@ -84,12 +84,14 @@ class LanguageProvider with ChangeNotifier {
       'messages': 'Messages',
       'conversations': 'Conversations',
       'no_conversations': 'No conversations yet',
-      'no_conversations_desc': 'Start chatting by contacting a property owner from the property details page.',
+      'no_conversations_desc':
+          'Start chatting by contacting a property owner from the property details page.',
       'no_messages': 'No messages yet. Say hello!',
       'type_message': 'Type a message...',
       'send': 'Send',
       'chat_auto_message': 'Salam, I am interested in this property.',
-      'cannot_chat_own': 'You cannot chat with yourself about your own property.',
+      'cannot_chat_own':
+          'You cannot chat with yourself about your own property.',
       'typing': 'typing...',
       'online': 'Online',
       'last_seen': 'last seen',
@@ -97,6 +99,19 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_everyone': 'Delete for everyone',
       'message_deleted': 'This message was deleted',
       'recording': 'Recording...',
+
+      // Reviews & Ratings
+      'leave_review': 'Leave a Review',
+      'edit_review': 'Edit Review',
+      'delete_review': 'Delete Review',
+      'submit_review': 'Submit Review',
+      'review_success': 'Review submitted successfully',
+      'review_updated_success': 'Review updated successfully',
+      'review_deleted_success': 'Review deleted successfully',
+      'owner_review_error': 'You cannot review your own property.',
+      'duplicate_review_error': 'You have already reviewed this property.',
+      'rating_required': 'Rating is required (1-5 stars).',
+
       // Property Details
       'bedrooms': 'Bedrooms',
       'bathroom': 'Bathroom',
@@ -152,7 +167,7 @@ class LanguageProvider with ChangeNotifier {
       'fill_required_fields': 'Please fill all required fields',
       'change_location': 'Change location',
       'failed_avatar': 'Failed to upload avatar: ',
-      
+
       // Transactions
       'buy': 'Buy Now',
       'rent_now': 'Rent Now',
@@ -204,7 +219,8 @@ class LanguageProvider with ChangeNotifier {
       'sort_rating': 'Rating',
       'property_singular': 'Property',
       'property_plural': 'Properties',
-      'no_properties_desc': 'We couldn\'t find any properties matching\nyour search criteria.',
+      'no_properties_desc':
+          'We couldn\'t find any properties matching\nyour search criteria.',
       'reset_filters': 'Reset Filters',
       'listing_now_published_1': 'Your listing is now\n',
       'listing_now_published_2': 'published',
@@ -239,11 +255,13 @@ class LanguageProvider with ChangeNotifier {
       'mes_locations': 'Rented by me (Tenant)',
       'biens_loues': 'My Rented Properties (Owner)',
       'join_darna_today': 'Join Darna Today!',
-      'guest_signup_prompt': 'Sign in or create an account to save favorites,\ncontact agents and more.',
+      'guest_signup_prompt':
+          'Sign in or create an account to save favorites,\ncontact agents and more.',
       'browsing_as_guest': 'Browsing as Guest',
       'signin_full_access': 'Sign in for full access',
       'unlock_full_access': 'Unlock Full Access',
-      'unlock_subtitle': 'Save favorites, contact agents\nand browse all listings.',
+      'unlock_subtitle':
+          'Save favorites, contact agents\nand browse all listings.',
       'signin_now': 'Sign In Now →',
     },
     'fr': {
@@ -308,12 +326,14 @@ class LanguageProvider with ChangeNotifier {
       'messages': 'Messages',
       'conversations': 'Conversations',
       'no_conversations': 'Aucune conversation',
-      'no_conversations_desc': 'Commencez à discuter en contactant un propriétaire depuis la page de détails.',
+      'no_conversations_desc':
+          'Commencez à discuter en contactant un propriétaire depuis la page de détails.',
       'no_messages': 'Aucun message. Dites bonjour !',
       'type_message': 'Tapez un message...',
       'send': 'Envoyer',
       'chat_auto_message': 'Bonjour, je suis intéressé par ce bien.',
-      'cannot_chat_own': 'Vous ne pouvez pas discuter de votre propre propriété.',
+      'cannot_chat_own':
+          'Vous ne pouvez pas discuter de votre propre propriété.',
       'typing': 'en train d\'écrire...',
       'online': 'En ligne',
       'last_seen': 'dernière connexion',
@@ -321,6 +341,20 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_everyone': 'Supprimer pour tout le monde',
       'message_deleted': 'Ce message a été supprimé',
       'recording': 'Enregistrement...',
+
+      // Reviews & Ratings
+      'leave_review': 'Laisser un avis',
+      'edit_review': 'Modifier l\'avis',
+      'delete_review': 'Supprimer l\'avis',
+      'submit_review': 'Soumettre l\'avis',
+      'review_success': 'Avis soumis avec succès',
+      'review_updated_success': 'Avis mis à jour avec succès',
+      'review_deleted_success': 'Avis supprimé avec succès',
+      'owner_review_error':
+          'Vous ne pouvez pas évaluer votre propre propriété.',
+      'duplicate_review_error': 'Vous avez déjà évalué cette propriété.',
+      'rating_required': 'Une note est requise (1-5 étoiles).',
+
       // Property Details
       'bedrooms': 'Chambres',
       'bathroom': 'Salle de bain',
@@ -384,7 +418,8 @@ class LanguageProvider with ChangeNotifier {
       'status_canceled': 'Annulé',
       'status_pending': 'En attente',
       'status_active': 'Actif',
-      'update_profile_failed': 'Échec de la mise à jour du profil. Veuillez réessayer.',
+      'update_profile_failed':
+          'Échec de la mise à jour du profil. Veuillez réessayer.',
       'phone_number': 'Numéro de téléphone',
       'cost_desc_not_avail': 'Description des coûts indisponible.',
       'trans_price': 'Prix :',
@@ -462,11 +497,13 @@ class LanguageProvider with ChangeNotifier {
       'mes_locations': 'Mes locations',
       'biens_loues': 'Biens loués',
       'join_darna_today': 'Rejoignez Darna aujourd\'hui !',
-      'guest_signup_prompt': 'Connectez-vous ou créez un compte pour enregistrer vos favoris,\ncontacter des agents et plus encore.',
+      'guest_signup_prompt':
+          'Connectez-vous ou créez un compte pour enregistrer vos favoris,\ncontacter des agents et plus encore.',
       'browsing_as_guest': 'Navigation en tant qu\'invité',
       'signin_full_access': 'Connectez-vous pour un accès complet',
       'unlock_full_access': 'Débloquer l\'accès complet',
-      'unlock_subtitle': 'Enregistrez vos favoris, contactez des agents\net parcourez toutes les annonces.',
+      'unlock_subtitle':
+          'Enregistrez vos favoris, contactez des agents\net parcourez toutes les annonces.',
       'signin_now': 'Se connecter maintenant →',
     },
     'ar': {
@@ -531,7 +568,8 @@ class LanguageProvider with ChangeNotifier {
       'messages': 'الرسائل',
       'conversations': 'المحادثات',
       'no_conversations': 'لا توجد محادثات',
-      'no_conversations_desc': 'ابدأ المحادثة عبر التواصل مع مالك العقار من صفحة التفاصيل.',
+      'no_conversations_desc':
+          'ابدأ المحادثة عبر التواصل مع مالك العقار من صفحة التفاصيل.',
       'no_messages': 'لا توجد رسائل. قل مرحبا!',
       'type_message': 'اكتب رسالة...',
       'send': 'إرسال',
@@ -544,6 +582,19 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_everyone': 'حذف عند الجميع',
       'message_deleted': 'تم حذف هذه الرسالة',
       'recording': 'جاري التسجيل...',
+
+      // Reviews & Ratings
+      'leave_review': 'أضف تقييم',
+      'edit_review': 'تعديل التقييم',
+      'delete_review': 'حذف التقييم',
+      'submit_review': 'إرسال التقييم',
+      'review_success': 'تم إرسال التقييم بنجاح',
+      'review_updated_success': 'تم تحديث التقييم بنجاح',
+      'review_deleted_success': 'تم حذف التقييم بنجاح',
+      'owner_review_error': 'لا يمكنك تقييم عقارك الخاص.',
+      'duplicate_review_error': 'لقد قمت بتقييم هذا العقار مسبقاً.',
+      'rating_required': 'يرجى تحديد تقييم من (1-5) نجوم.',
+
       // Property Details
       'bedrooms': 'غرف نوم',
       'bathroom': 'حمام',
@@ -607,7 +658,8 @@ class LanguageProvider with ChangeNotifier {
       'status_canceled': 'ملغى',
       'status_pending': 'قيد الانتظار',
       'status_active': 'نشط',
-      'update_profile_failed': 'فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.',
+      'update_profile_failed':
+          'فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.',
       'phone_number': 'رقم الهاتف',
       'cost_desc_not_avail': 'وصف التكلفة غير متوفر.',
       'trans_price': 'السعر:',
@@ -685,11 +737,13 @@ class LanguageProvider with ChangeNotifier {
       'mes_locations': 'إيجاراتي',
       'biens_loues': 'عقاراتي المؤجرة',
       'join_darna_today': 'انضم إلى دارنا اليوم!',
-      'guest_signup_prompt': 'سجل الدخول أو أنشئ حساباً لحفظ مفضلاتك،\nوالتواصل مع الوكلاء والمزيد.',
+      'guest_signup_prompt':
+          'سجل الدخول أو أنشئ حساباً لحفظ مفضلاتك،\nوالتواصل مع الوكلاء والمزيد.',
       'browsing_as_guest': 'تصفح كزائر',
       'signin_full_access': 'سجل الدخول للوصول الكامل',
       'unlock_full_access': 'استفد من الوصول الكامل',
-      'unlock_subtitle': 'احفظ مفضلاتك، تواصل مع الوكلاء\nوتصفح جميع الإعلانات.',
+      'unlock_subtitle':
+          'احفظ مفضلاتك، تواصل مع الوكلاء\nوتصفح جميع الإعلانات.',
       'signin_now': 'سجل الدخول الآن ←',
     },
   };
@@ -715,5 +769,6 @@ class LanguageProvider with ChangeNotifier {
 }
 
 extension LocalizationExtension on BuildContext {
-  String tr(String key) => Provider.of<LanguageProvider>(this, listen: false).translate(key);
+  String tr(String key) =>
+      Provider.of<LanguageProvider>(this, listen: false).translate(key);
 }

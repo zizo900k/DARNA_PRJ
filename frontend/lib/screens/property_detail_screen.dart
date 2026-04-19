@@ -16,6 +16,7 @@ import 'package:intl/intl.dart';
 import '../widgets/map/mapbox_widget.dart';
 import '../config/map_config.dart';
 import '../widgets/user_avatar.dart';
+import '../services/review_service.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? property;
@@ -95,28 +96,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400'
             },
           ],
-          'userReviews': [
-            {
-              'id': 1,
-              'name': 'youssof belaissaoui',
-              'avatar': 'https://i.pravatar.cc/150?img=33',
-              'rating': 5,
-              'date': 'a month ago',
-              'comment':
-                  'Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-            },
-            {
-              'id': 2,
-              'name': 'ayad boukhali',
-              'avatar': 'https://i.pravatar.cc/150?img=68',
-              'rating': 4,
-              'date': '2 weeks ago',
-              'comment':
-                  'Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip.',
-            },
-          ],
         };
-        
+
     // Fetch real data in background
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchPropertyDetails();
@@ -126,7 +107,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Future<void> _fetchPropertyDetails() async {
     if (!mounted) return;
     try {
-      final response = await PropertyService.getProperty(_property['id'] as int);
+      final response =
+          await PropertyService.getProperty(_property['id'] as int);
       if (mounted) {
         setState(() {
           // Backend returns property directly, or wrapped in 'data'
@@ -162,13 +144,16 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Future<void> _handleBuy() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
       return;
     }
-    
+
     // Prevent owner from buying their own property
-    if (_property['user_id'] != null && _property['user_id'] == authProvider.user?['id']) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('cannot_buy_own'))));
+    if (_property['user_id'] != null &&
+        _property['user_id'] == authProvider.user?['id']) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('cannot_buy_own'))));
       return;
     }
 
@@ -180,16 +165,20 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(context.tr('success')),
-            content: Text(res['message']?.toString() ?? 'Purchase request sent.'),
+            content:
+                Text(res['message']?.toString() ?? 'Purchase request sent.'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.tr('ok'))),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(context.tr('ok'))),
             ],
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
       }
     } finally {
       setState(() => _isProcessingAction = false);
@@ -199,12 +188,15 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Future<void> _handleRent() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
       return;
     }
 
-    if (_property['user_id'] != null && _property['user_id'] == authProvider.user?['id']) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('cannot_rent_own'))));
+    if (_property['user_id'] != null &&
+        _property['user_id'] == authProvider.user?['id']) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('cannot_rent_own'))));
       return;
     }
 
@@ -243,9 +235,13 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       Text(context.tr('months')),
                       IconButton(
                         icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: months > 1 ? () => stSetState(() => months--) : null,
+                        onPressed: months > 1
+                            ? () => stSetState(() => months--)
+                            : null,
                       ),
-                      Text('$months', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('$months',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                       IconButton(
                         icon: const Icon(Icons.add_circle_outline),
                         onPressed: () => stSetState(() => months++),
@@ -260,11 +256,15 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                 ],
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('cancel'))),
+                TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(context.tr('cancel'))),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary),
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(context.tr('confirm'), style: const TextStyle(color: Colors.white)),
+                  child: Text(context.tr('confirm'),
+                      style: const TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -289,14 +289,17 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
             title: Text(context.tr('success')),
             content: Text(res['message']?.toString() ?? 'Rent request sent.'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.tr('ok'))),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(context.tr('ok'))),
             ],
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
       }
     } finally {
       setState(() => _isProcessingAction = false);
@@ -306,7 +309,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Future<void> _openChat() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final langProvider = Provider.of<LanguageProvider>(context, listen: false);
-    
+
     if (!authProvider.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(langProvider.translate('require_login'))),
@@ -317,7 +320,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final ownerId = _property['user_id'] ?? _property['user']?['id'];
     if (ownerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(langProvider.translate('error') + 'Owner not found')),
+        SnackBar(
+            content: Text(langProvider.translate('error') + 'Owner not found')),
       );
       return;
     }
@@ -359,6 +363,184 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     }
   }
 
+  void _showReviewForm(BuildContext context,
+      {Map<String, dynamic>? existingReview}) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isLoggedIn) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
+      return;
+    }
+
+    // Check if the current user is the owner
+    final ownerId = _property['user_id'] ?? _property['user']?['id'];
+    if (ownerId == authProvider.user?['id']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('owner_review_error'))));
+      return;
+    }
+
+    int selectedRating = existingReview?['rating'] ?? 5;
+    final commentController =
+        TextEditingController(text: existingReview?['comment'] ?? '');
+
+    // Fallback UI keys for localized texts
+    final String title = existingReview == null
+        ? context.tr('leave_review')
+        : context.tr('edit_review');
+    final String submitBtn = context.tr('submit_review');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (stCtx, stSetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < selectedRating
+                              ? Icons.star
+                              : Icons.star_border,
+                          size: 40,
+                          color: index < selectedRating
+                              ? const Color(0xFFFFC107)
+                              : Colors.grey,
+                        ),
+                        onPressed: () {
+                          stSetState(() => selectedRating = index + 1);
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: context.tr('comment'),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        setState(() => _isProcessingAction = true);
+                        try {
+                          if (existingReview == null) {
+                            await ReviewService.addReview(
+                                _property['id'] as int, {
+                              'rating': selectedRating,
+                              'comment': commentController.text,
+                            });
+                          } else {
+                            await ReviewService.updateReview(
+                                existingReview['id'] as int, {
+                              'rating': selectedRating,
+                              'comment': commentController.text,
+                            });
+                          }
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(context.tr('review_success'))));
+                            _fetchPropertyDetails(); // Refresh property object to get updated reviews and rating
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.toString())));
+                          }
+                        } finally {
+                          if (mounted)
+                            setState(() => _isProcessingAction = false);
+                        }
+                      },
+                      child: Text(submitBtn,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  if (existingReview != null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.delete_outline),
+                        label: Text(
+                          context.tr('delete_review'),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          setState(() => _isProcessingAction = true);
+                          try {
+                            await ReviewService.deleteReview(existingReview['id'] as int);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text(context.tr('review_deleted_success'))));
+                              _fetchPropertyDetails();
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())));
+                            }
+                          } finally {
+                            if (mounted)
+                              setState(() => _isProcessingAction = false);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildAppBarButton({
     required BuildContext context,
     required IconData icon,
@@ -384,11 +566,12 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.7),
+                color: (isDark ? Colors.black : Colors.white)
+                    .withValues(alpha: 0.7),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color:
-                      (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                  color: (isDark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.1),
                   width: 1,
                 ),
                 boxShadow: [
@@ -420,28 +603,37 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final favProvider = context.watch<FavoritesProvider>();
     final isFavorite = favProvider.isFavorite(_property['id'] as int);
 
-    final rawImages = (_property['photos'] as List?) ?? (_property['images'] as List?) ?? [];
+    final rawImages =
+        (_property['photos'] as List?) ?? (_property['images'] as List?) ?? [];
     final images = rawImages.map((img) {
       if (img is String) return img;
       if (img is Map) {
-        return (img['full_url'] as String?) ?? (img['url'] as String?) ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+        return (img['full_url'] as String?) ??
+            (img['url'] as String?) ??
+            'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
       }
       return 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
     }).toList();
-    
-    final agent = _property['user'] ?? _property['agent'] ?? {
-      'name': 'Unknown Agent',
-      'avatar': 'https://ui-avatars.com/api/?name=Unknown+Agent',
-      'role': 'Property Owner',
-    };
+
+    final agent = _property['user'] ??
+        _property['agent'] ??
+        {
+          'name': 'Unknown Agent',
+          'avatar': 'https://ui-avatars.com/api/?name=Unknown+Agent',
+          'role': 'Property Owner',
+        };
     final agentName = agent['name'] ?? agent['full_name'] ?? 'Unknown Agent';
-    final agentAvatar = agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'];
-    
+    final agentAvatar =
+        agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'];
+
     final agentRole = agent['role'] ?? 'Property Owner';
-    final propertyAddress = _property['address'] ?? _property['location'] ?? 'Unknown location';
+    final propertyAddress =
+        _property['address'] ?? _property['location'] ?? 'Unknown location';
 
     final facilities = (_property['facilities'] as List?) ?? [];
-    final reviews = (_property['userReviews'] as List?) ?? [];
+    final reviews = (_property['reviews'] as List?) ?? [];
+    double averageRating =
+        double.tryParse(_property['rating']?.toString() ?? '0') ?? 0.0;
     final nearby = (_property['nearbyProperties'] as List?) ?? [];
 
     return Scaffold(
@@ -484,24 +676,29 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   images.isNotEmpty
                       ? PageView.builder(
                           itemCount: images.length,
-                          onPageChanged: (i) => setState(() => _currentImageIndex = i),
+                          onPageChanged: (i) =>
+                              setState(() => _currentImageIndex = i),
                           itemBuilder: (ctx, i) => Hero(
                             tag: i == 0
-                                ? (widget.heroTag ?? 'property_image_${_property['id']}')
+                                ? (widget.heroTag ??
+                                    'property_image_${_property['id']}')
                                 : 'property_image_${_property['id']}_$i',
                             child: Image.network(
                               images[i],
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
                                 width: double.infinity,
                                 color: Colors.grey.withValues(alpha: 0.2),
-                                child: const Icon(Icons.image_not_supported, size: 48),
+                                child: const Icon(Icons.image_not_supported,
+                                    size: 48),
                               ),
                             ),
                           ),
                         )
                       : Hero(
-                          tag: widget.heroTag ?? 'property_image_${_property['id']}',
+                          tag: widget.heroTag ??
+                              'property_image_${_property['id']}',
                           child: Image.network(
                             'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image',
                             fit: BoxFit.cover,
@@ -524,7 +721,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             width: isActive ? 20 : 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: isActive ? AppColors.primary : Colors.white.withValues(alpha: 0.6),
+                              color: isActive
+                                  ? AppColors.primary
+                                  : Colors.white.withValues(alpha: 0.6),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           );
@@ -538,14 +737,18 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       bottom: 40,
                       right: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${_currentImageIndex + 1} / ${images.length}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -558,19 +761,28 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       tween: Tween(begin: 0.0, end: 1.0),
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.elasticOut,
-                      builder: (context, value, child) => Transform.scale(scale: value, child: child),
+                      builder: (context, value, child) =>
+                          Transform.scale(scale: value, child: child),
                       child: GestureDetector(
                         onTap: () => _showComingSoon('AR View'),
                         child: Container(
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF16A085)]),
+                            gradient: const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFF16A085)]),
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                            boxShadow: [
+                              BoxShadow(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4))
+                            ],
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(Icons.view_in_ar, color: AppColors.white, size: 20),
+                          child: const Icon(Icons.view_in_ar,
+                              color: AppColors.white, size: 20),
                         ),
                       ),
                     ),
@@ -618,7 +830,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
-                                      _property['location']?.toString() ?? 'Location',
+                                      _property['location']?.toString() ??
+                                          'Location',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color:
@@ -643,7 +856,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 color: AppColors.primary,
                               ),
                             ),
-                            if (_property['type'] == 'rent' || _property['price_per_month'] != null || _property['pricePerMonth'] != null)
+                            if (_property['type'] == 'rent' ||
+                                _property['price_per_month'] != null ||
+                                _property['pricePerMonth'] != null)
                               Text(
                                 '/${context.tr('month')}',
                                 style: TextStyle(
@@ -673,7 +888,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             size: 16, color: AppColors.primary),
                         const SizedBox(width: 6),
                         Text(
-                          _property['category'] != null ? _property['category']['name'] : (_property['type']?.toString() ?? 'Property'),
+                          _property['category'] != null
+                              ? _property['category']['name']
+                              : (_property['type']?.toString() ?? 'Property'),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -754,12 +971,16 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                               height: 44,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [AppColors.primary, Color(0xFF16A085)],
+                                  colors: [
+                                    AppColors.primary,
+                                    Color(0xFF16A085)
+                                  ],
                                 ),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.3),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
@@ -780,7 +1001,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
                   // Features — full room details
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24)
+                        .copyWith(bottom: 8),
                     child: Text(
                       context.tr('features'),
                       style: TextStyle(
@@ -791,25 +1013,66 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24)
+                        .copyWith(bottom: 24),
                     child: Wrap(
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _buildFeatureTile(Icons.bed_outlined, '${_property['bedrooms'] ?? 0}', context.tr('bedroom'), theme, isDark),
-                        _buildFeatureTile(Icons.bathtub_outlined, '${_property['bathrooms'] ?? 0}', context.tr('bathroom'), theme, isDark),
+                        _buildFeatureTile(
+                            Icons.bed_outlined,
+                            '${_property['bedrooms'] ?? 0}',
+                            context.tr('bedroom'),
+                            theme,
+                            isDark),
+                        _buildFeatureTile(
+                            Icons.bathtub_outlined,
+                            '${_property['bathrooms'] ?? 0}',
+                            context.tr('bathroom'),
+                            theme,
+                            isDark),
                         if ((_property['kitchens'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.kitchen_outlined, '${_property['kitchens']}', context.tr('kitchen'), theme, isDark),
+                          _buildFeatureTile(
+                              Icons.kitchen_outlined,
+                              '${_property['kitchens']}',
+                              context.tr('kitchen'),
+                              theme,
+                              isDark),
                         if ((_property['toilets'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.wc_outlined, '${_property['toilets']}', context.tr('toilet'), theme, isDark),
+                          _buildFeatureTile(
+                              Icons.wc_outlined,
+                              '${_property['toilets']}',
+                              context.tr('toilet'),
+                              theme,
+                              isDark),
                         if ((_property['living_rooms'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.weekend_outlined, '${_property['living_rooms']}', context.tr('living_room'), theme, isDark),
+                          _buildFeatureTile(
+                              Icons.weekend_outlined,
+                              '${_property['living_rooms']}',
+                              context.tr('living_room'),
+                              theme,
+                              isDark),
                         if ((_property['balcony'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.balcony_outlined, '${_property['balcony']}', context.tr('balcony'), theme, isDark),
+                          _buildFeatureTile(
+                              Icons.balcony_outlined,
+                              '${_property['balcony']}',
+                              context.tr('balcony'),
+                              theme,
+                              isDark),
                         if ((_property['area'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.crop_square_outlined, '${_property['area']} m²', context.tr('area_label').split(' ').first, theme, isDark),
+                          _buildFeatureTile(
+                              Icons.crop_square_outlined,
+                              '${_property['area']} m²',
+                              context.tr('area_label').split(' ').first,
+                              theme,
+                              isDark),
                         if ((_property['total_rooms'] ?? 0) > 0)
-                          _buildFeatureTile(Icons.door_sliding_outlined, '${_property['total_rooms']}', context.tr('total_rooms'), theme, isDark),
+                          _buildFeatureTile(
+                              Icons.door_sliding_outlined,
+                              '${_property['total_rooms']}',
+                              context.tr('total_rooms'),
+                              theme,
+                              isDark),
                       ],
                     ),
                   ),
@@ -908,12 +1171,18 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(facility is Map ? (facility['icon'] as IconData? ?? Icons.check_circle_outline) : Icons.check_circle_outline,
+                                  Icon(
+                                      facility is Map
+                                          ? (facility['icon'] as IconData? ??
+                                              Icons.check_circle_outline)
+                                          : Icons.check_circle_outline,
                                       size: 14,
                                       color: theme.textTheme.bodyMedium?.color),
                                   const SizedBox(width: 6),
                                   Text(
-                                    facility is Map ? (facility['name']?.toString() ?? '') : facility.toString(),
+                                    facility is Map
+                                        ? (facility['name']?.toString() ?? '')
+                                        : facility.toString(),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: theme.textTheme.bodyMedium?.color,
@@ -932,31 +1201,39 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 ? DarkColors.backgroundSecondary
                                 : LightColors.backgroundSecondary,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: Colors.grey.withValues(alpha: 0.3)),
                           ),
                           alignment: Alignment.center,
                           clipBehavior: Clip.antiAlias,
-                          child: _property['latitude'] != null && _property['longitude'] != null
-                             ? MapboxWidget(
-                                 initialLatitude: double.tryParse(_property['latitude'].toString()),
-                                 initialLongitude: double.tryParse(_property['longitude'].toString()),
-                                 isPicker: false,
-                                 mapStyle: MapStyle.premium3D,
-                               )
+                          child: _property['latitude'] != null &&
+                                  _property['longitude'] != null
+                              ? MapboxWidget(
+                                  initialLatitude: double.tryParse(
+                                      _property['latitude'].toString()),
+                                  initialLongitude: double.tryParse(
+                                      _property['longitude'].toString()),
+                                  isPicker: false,
+                                  mapStyle: MapStyle.premium3D,
+                                )
                               : Padding(
-                                 padding: const EdgeInsets.all(20),
-                                 child: Column(
-                                   mainAxisAlignment: MainAxisAlignment.center,
-                                   children: [
-                                     Icon(Icons.map_outlined, color: theme.dividerColor, size: 40),
-                                     const SizedBox(height: 8),
-                                     Text(
-                                       context.tr('location_not_set'),
-                                       style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12),
-                                     ),
-                                   ],
-                                 ),
-                               ),
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.map_outlined,
+                                          color: theme.dividerColor, size: 40),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        context.tr('location_not_set'),
+                                        style: TextStyle(
+                                            color: theme
+                                                .textTheme.bodyMedium?.color,
+                                            fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                         ),
                       ],
                     ),
@@ -1013,7 +1290,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                _property['cost']?['description']?.toString() ?? context.tr('cost_desc_not_avail'),
+                                _property['cost']?['description']?.toString() ??
+                                    context.tr('cost_desc_not_avail'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: theme.textTheme.bodyMedium?.color,
@@ -1028,165 +1306,335 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   ),
 
                   // Reviews
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24)
-                        .copyWith(bottom: 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr('reviews'),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [AppColors.primary, Color(0xFF16A085)]),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
+                  if (reviews.isNotEmpty ||
+                      Provider.of<AuthProvider>(context, listen: false)
+                          .isLoggedIn)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 16)
+                          .copyWith(bottom: 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Icon(Icons.star,
-                                  size: 24, color: Color(0xFFFFC107)),
-                              const SizedBox(width: 12),
                               Text(
-                                _property['rating'].toString(),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.white,
+                                context.tr('reviews'),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.textTheme.bodyLarge?.color,
                                 ),
                               ),
-                              const Spacer(),
-                              Row(
-                                children: reviews
-                                    .take(3)
-                                    .toList()
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                                  return Align(
-                                    widthFactor: entry.key > 0 ? 0.75 : 1.0,
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: AppColors.white, width: 2),
-                                        image: DecorationImage(
-                                          image: CachedNetworkImageProvider(
-                                              entry.value['avatar']?.toString() ?? 'https://i.pravatar.cc/150?img=33'),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
+                              Builder(builder: (context) {
+                                final auth = context.watch<AuthProvider>();
+                                // Find if current user already reviewed
+                                final existingReview = auth.isLoggedIn &&
+                                        reviews.isNotEmpty
+                                    ? reviews
+                                        .cast<Map<dynamic, dynamic>>()
+                                        .firstWhere(
+                                          (r) =>
+                                              r['user_id'] ==
+                                                  auth.user?['id'] ||
+                                              (r['user'] != null &&
+                                                  r['user']['id'] ==
+                                                      auth.user?['id']),
+                                          orElse: () => <dynamic, dynamic>{},
+                                        )
+                                        .cast<String, dynamic>()
+                                    : <String, dynamic>{};
+                                final hasReviewed = existingReview.isNotEmpty;
+                                return InkWell(
+                                  onTap: () => _showReviewForm(context,
+                                      existingReview:
+                                          hasReviewed ? existingReview : null),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.3)),
                                     ),
-                                  );
-                                }).toList(),
-                              ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          hasReviewed
+                                              ? Icons.edit_outlined
+                                              : Icons.add_circle_outline,
+                                          size: 16,
+                                          color: AppColors.primary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          hasReviewed
+                                              ? context.tr('edit_review')
+                                              : context.tr('leave_review'),
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        ...reviews.map((review) {
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? DarkColors.backgroundSecondary
-                                  : LightColors.backgroundSecondary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: CachedNetworkImage(
-                                        imageUrl: review['avatar']?.toString() ?? 'https://i.pravatar.cc/150?img=33',
-                                        width: 40,
-                                        height: 40,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            review['name']?.toString() ?? 'Reviewer',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: theme
-                                                  .textTheme.bodyLarge?.color,
-                                            ),
-                                          ),
-                                          Text(
-                                            review['date']?.toString() ?? 'recently',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: theme
-                                                  .textTheme.bodyMedium?.color,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Row(
-                                      children: List.generate(5, (index) {
-                                        return Icon(
-                                          Icons.star,
-                                          size: 12,
-                                          color:
-                                              index < (review['rating'] as int)
-                                                  ? const Color(0xFFFFC107)
-                                                  : theme.dividerColor,
-                                        );
-                                      }),
-                                    ),
+                          const SizedBox(height: 20),
+                          if (reviews.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0F2027),
+                                    Color(0xFF203A43),
+                                    Color(0xFF2C5364)
                                   ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  review['comment']?.toString() ?? '',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: theme.textTheme.bodyMedium?.color,
-                                    height: 1.5,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  )
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        averageRating.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                          fontSize: 36,
+                                          height: 1.0,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: List.generate(5, (index) {
+                                          return Icon(
+                                            index < averageRating.round()
+                                                ? Icons.star_rounded
+                                                : Icons.star_outline_rounded,
+                                            size: 18,
+                                            color: const Color(0xFFFFC107),
+                                          );
+                                        }),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${reviews.length} ${context.tr('reviews')}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              context.tr('view_all_reviews'),
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
+                                  // Avatars
+                                  if (reviews.isNotEmpty)
+                                    SizedBox(
+                                      height: 44,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: reviews
+                                            .take(4)
+                                            .toList()
+                                            .asMap()
+                                            .entries
+                                            .map((entry) {
+                                          final rMap = entry.value as Map;
+                                          final user = rMap['user'];
+                                          final avatar = (user != null
+                                                  ? (user['full_avatar_url'] ??
+                                                      user['profile_picture'] ??
+                                                      user['avatar'])
+                                                  : null) ??
+                                              rMap['avatar'] ??
+                                              'https://i.pravatar.cc/150?img=${33 + entry.key}';
+                                          return Align(
+                                            widthFactor: 0.7,
+                                            child: Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                    color:
+                                                        const Color(0xFF203A43),
+                                                    width: 3),
+                                                image: DecorationImage(
+                                                  image:
+                                                      CachedNetworkImageProvider(
+                                                          avatar.toString()),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          ...reviews.map((rawReview) {
+                            final review = rawReview as Map;
+                            final user = review['user'] ?? {};
+                            final reviewerName = user['name'] ??
+                                user['full_name'] ??
+                                review['name'] ??
+                                'Reviewer';
+                            final reviewerAvatar = user['full_avatar_url'] ??
+                                user['profile_picture'] ??
+                                user['avatar'] ??
+                                review['avatar'] ??
+                                'https://i.pravatar.cc/150';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? DarkColors.backgroundSecondary
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.black.withValues(alpha: 0.03)),
+                                boxShadow: [
+                                  if (!isDark)
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.03),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    )
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      UserAvatar(
+                                        imageUrl: reviewerAvatar.toString(),
+                                        name: reviewerName.toString(),
+                                        size: 46,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              reviewerName.toString(),
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme
+                                                    .textTheme.bodyLarge?.color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Row(
+                                                  children:
+                                                      List.generate(5, (index) {
+                                                    return Icon(
+                                                      index <
+                                                              (int.tryParse(review[
+                                                                              'rating']
+                                                                          ?.toString() ??
+                                                                      '0') ??
+                                                                  0)
+                                                          ? Icons.star_rounded
+                                                          : Icons
+                                                              .star_outline_rounded,
+                                                      size: 14,
+                                                      color: const Color(
+                                                          0xFFFFB300),
+                                                    );
+                                                  }),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  review['created_at'] != null
+                                                      ? DateFormat(
+                                                              'MMM dd, yyyy')
+                                                          .format(DateTime.parse(
+                                                              review['created_at']
+                                                                  .toString()))
+                                                      : review['date']
+                                                              ?.toString() ??
+                                                          'recently',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: theme.textTheme
+                                                        .bodyMedium?.color
+                                                        ?.withValues(
+                                                            alpha: 0.7),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (review['comment'] != null &&
+                                      review['comment']
+                                          .toString()
+                                          .trim()
+                                          .isNotEmpty) ...[
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      '“${review['comment']}”',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        height: 1.5,
+                                        fontStyle: FontStyle.italic,
+                                        color: theme.textTheme.bodyMedium?.color
+                                            ?.withValues(alpha: 0.9),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     ),
-                  ),
 
                   // Nearby
                   Padding(
@@ -1215,7 +1663,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -1223,7 +1672,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: CachedNetworkImage(
-                                  imageUrl: item['image']?.toString() ?? 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400',
+                                  imageUrl: item['image']?.toString() ??
+                                      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400',
                                   fit: BoxFit.cover,
                                 ),
                               );
@@ -1246,9 +1696,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     if (_property.isEmpty) return const SizedBox.shrink();
 
     final isRent = _property['type'] == 'rent';
-    final priceLabel = isRent 
-      ? 'MAD ${_property['price_per_month'] ?? _property['price'] ?? 0} / ${context.tr('month')}'
-      : 'MAD ${_property['price'] ?? 0}';
+    final priceLabel = isRent
+        ? 'MAD ${_property['price_per_month'] ?? _property['price'] ?? 0} / ${context.tr('month')}'
+        : 'MAD ${_property['price'] ?? 0}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1295,10 +1745,13 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
             ),
             const SizedBox(width: 16),
             ElevatedButton(
-              onPressed: _isProcessingAction ? null : (isRent ? _handleRent : _handleBuy),
+              onPressed: _isProcessingAction
+                  ? null
+                  : (isRent ? _handleRent : _handleBuy),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1307,7 +1760,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : Text(
                       isRent ? context.tr('rent_now') : context.tr('buy'),
@@ -1324,14 +1778,18 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     );
   }
 
-  Widget _buildFeatureTile(IconData icon, String value, String label, ThemeData theme, bool isDark) {
+  Widget _buildFeatureTile(
+      IconData icon, String value, String label, ThemeData theme, bool isDark) {
     return Container(
       width: (MediaQuery.of(context).size.width - 24 * 2 - 12) / 2,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+        color: isDark
+            ? DarkColors.backgroundSecondary
+            : LightColors.backgroundSecondary,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? DarkColors.border : LightColors.border),
+        border:
+            Border.all(color: isDark ? DarkColors.border : LightColors.border),
       ),
       child: Row(
         children: [
@@ -1373,5 +1831,3 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     );
   }
 }
-
-
