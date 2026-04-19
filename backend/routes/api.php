@@ -24,6 +24,7 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/auth/google', [AuthController::class, 'googleAuth']);
 
 // Public property listing & details
 Route::get('/properties',      [PropertyController::class, 'index']);
@@ -39,6 +40,7 @@ Route::get('/agents', [\App\Http\Controllers\Api\AgentController::class, 'index'
 // Categories
 Route::get('/categories',          [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
+Route::get('/conversations/{id}/audio-stream/{filename}', [ChatController::class, 'streamAudio']);
 
 /*
 |--------------------------------------------------------------------------
@@ -107,6 +109,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/unread-count',       [ChatController::class, 'unreadCount']);
     Route::get('/conversations/{id}/messages',      [ChatController::class, 'messages']);
     Route::post('/conversations/{id}/messages',     [ChatController::class, 'sendMessage']);
+    Route::post('/conversations/{id}/audio',        [ChatController::class, 'sendAudioMessage']);
+    Route::post('/conversations/{id}/call/signal',  [ChatController::class, 'sendCallSignal']);
     Route::put('/conversations/{id}/read',          [ChatController::class, 'markAsRead']);
     Route::put('/conversations/{id}/delivered',     [ChatController::class, 'markDelivered']);
     Route::delete('/conversations/{id}/messages/{msgId}/for-me',       [ChatController::class, 'deleteForMe']);

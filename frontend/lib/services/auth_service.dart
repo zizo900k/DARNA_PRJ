@@ -1,4 +1,5 @@
-﻿import 'api_service.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_auth;
+import 'api_service.dart';
 
 class AuthService {
   static Future<Map<String, dynamic>> login(String email, String password) async {
@@ -36,43 +37,34 @@ class AuthService {
     } catch (e) {
       // Ignore errors on logout, just clear local token
     }
+    try {
+      await google_auth.GoogleSignIn.instance.signOut();
+    } catch (_) {}
     await ApiService.removeToken();
   }
 
-  static Future<Map<String, dynamic>> socialLogin(String provider, String token, String email, String fullName, [String? avatar]) async {
+  static Future<Map<String, dynamic>> googleLogin() async {
+    await google_auth.GoogleSignIn.instance.initialize(
+      clientId: '498032892592-v3kgf2h9h0ton7c3572v0rkb4l6t0m38.apps.googleusercontent.com',
+    );
+    
+    final google_auth.GoogleSignInAccount googleUser = await google_auth.GoogleSignIn.instance.authenticate();
+    
+    final google_auth.GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    
+    final idToken = googleAuth.idToken;
+    
+    if (idToken == null) {
+      throw Exception('Failed to get Google ID token');
+    }
+    
     final response = await ApiService.post(
-      '/auth/social',
-      body: {
-        'provider': provider,
-        'provider_id': token, // Simplified for this implementation
-        'email': email,
-        'full_name': fullName,
-        if (avatar != null) 'avatar': avatar,
-      },
+      '/auth/google',
+      body: {'id_token': idToken},
       requiresAuth: false,
     );
+    
     return response as Map<String, dynamic>;
-  }
-
-  static Future<void> forgotPassword(String email) async {
-    await ApiService.post(
-      '/auth/forgot-password',
-      body: {'email': email},
-      requiresAuth: false,
-    );
-  }
-
-  static Future<void> resetPassword(String email, String token, String password, String passwordConfirmation) async {
-    await ApiService.post(
-      '/auth/reset-password',
-      body: {
-        'email': email,
-        'token': token,
-        'password': password,
-        'password_confirmation': passwordConfirmation,
-      },
-      requiresAuth: false,
-    );
   }
 }
 

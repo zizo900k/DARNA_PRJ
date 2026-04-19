@@ -34,6 +34,8 @@ final GlobalKey<NavigatorState> _shellNavigatorProfileKey =
     GlobalKey<NavigatorState>(debugLabel: 'shellProfile');
 
 class AppRouter {
+  static GlobalKey<NavigatorState> get rootNavigatorKey => _rootNavigatorKey;
+
   static Map<String, dynamic> _propertyToMap(Property p) {
     return {
       'id': p.id,

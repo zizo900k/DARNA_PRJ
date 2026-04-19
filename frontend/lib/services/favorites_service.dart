@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'api_service.dart';
 
 class FavoritesService {
   static Future<List<dynamic>> getFavorites() async {
     final response = await ApiService.get('/favorites');
-    debugPrint('RAW FAVORITES RESPONSE: $response');
     if (response is List) return response;
     if (response is Map && response.containsKey('data')) return response['data'];
     return [];

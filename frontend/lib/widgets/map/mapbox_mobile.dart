@@ -40,7 +40,6 @@ class _MapboxMobile extends StatefulWidget {
 
 class _MapboxMobileState extends State<_MapboxMobile> {
   MapboxMap? mapboxMap;
-  PointAnnotationManager? pointAnnotationManager;
 
   @override
   void initState() {
@@ -65,23 +64,11 @@ class _MapboxMobileState extends State<_MapboxMobile> {
         rotateEnabled: false,
         doubleTapToZoomInEnabled: false,
         pinchToZoomEnabled: false,
-        panEnabled: false,
       ));
     }
   }
 
-  void _setMarker(double lat, double lng) async {
-    if (pointAnnotationManager == null) return;
-    await pointAnnotationManager!.deleteAll();
-    pointAnnotationManager!.create(PointAnnotationOptions(
-      geometry: Point(coordinates: Position(lng, lat)).toJson(),
-      iconImage: 'marker-15', // Default mapbox marker, or we could load custom
-      iconSize: 2.0,
-      iconColor: 0xFFE74C3C, // Cannot easily tint default marker without custom image, let's just use default or provide a CircleAnnotation
-    ));
-    // As alternative for simpler colored dot, we can use CircleAnnotationManager
-    // But PointAnnotation with standard icon works. 
-  }
+
 
   // Use CircleAnnotationManager for a custom colored dot
   CircleAnnotationManager? circleAnnotationManager;
@@ -92,7 +79,7 @@ class _MapboxMobileState extends State<_MapboxMobile> {
     }
     await circleAnnotationManager!.deleteAll();
     circleAnnotationManager!.create(CircleAnnotationOptions(
-      geometry: Point(coordinates: Position(lng, lat)).toJson(),
+      geometry: Point(coordinates: Position(lng, lat)),
       circleColor: 0xFFE74C3C, // AppColors.primary
       circleRadius: 10.0,
       circleStrokeColor: 0xFFFFFFFF,
@@ -123,7 +110,7 @@ class _MapboxMobileState extends State<_MapboxMobile> {
         key: const ValueKey("mapWidget"),
         styleUri: MapConfig.getStyleUri(widget.mapStyle),
         cameraOptions: CameraOptions(
-          center: Point(coordinates: Position(lng, lat)).toJson(),
+          center: Point(coordinates: Position(lng, lat)),
           zoom: isPremium ? 16.0 : 14.0,
           pitch: isPremium ? 45.0 : 0.0,
         ),

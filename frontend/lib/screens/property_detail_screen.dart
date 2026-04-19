@@ -15,6 +15,7 @@ import '../theme/auth_provider.dart';
 import 'package:intl/intl.dart';
 import '../widgets/map/mapbox_widget.dart';
 import '../config/map_config.dart';
+import '../widgets/user_avatar.dart';
 
 class PropertyDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? property;
@@ -434,15 +435,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       'role': 'Property Owner',
     };
     final agentName = agent['name'] ?? agent['full_name'] ?? 'Unknown Agent';
-    final agentAvatar = agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(agentName)}';
+    final agentAvatar = agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'];
     
-    // Safety check for unsplash / pravatar which block CORS
-    String finalAgentAvatar = agentAvatar.toString();
-    if (finalAgentAvatar.contains('unsplash.com') || finalAgentAvatar.contains('pravatar.cc')) {
-      finalAgentAvatar = 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(agentName)}';
-    }
     final agentRole = agent['role'] ?? 'Property Owner';
-    final agentPhone = _property['phone_number'] ?? agent['phone'] ?? '+212600000000';
     final propertyAddress = _property['address'] ?? _property['location'] ?? 'Unknown location';
 
     final facilities = (_property['facilities'] as List?) ?? [];
@@ -722,18 +717,10 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       ),
                       child: Row(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(25),
-                            child: CachedNetworkImage(
-                              imageUrl: finalAgentAvatar,
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, error, stackTrace) => Container(
-                                color: Colors.grey.withValues(alpha: 0.2),
-                                child: const Icon(Icons.person, size: 24, color: Colors.grey),
-                              ),
-                            ),
+                          UserAvatar(
+                            name: agentName,
+                            imageUrl: agentAvatar,
+                            size: 50,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -883,7 +870,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   size: 18, color: AppColors.primary),
                               const SizedBox(width: 12),
                               Text(
-                                '${_property['distance']} ',
+                                '${_property['distance'] ?? '0.0 km'} ',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -891,7 +878,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 ),
                               ),
                               Text(
-                                '${_property['duration']} . drive',
+                                '${_property['duration'] ?? '0'} . drive',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: theme.textTheme.bodyMedium?.color,
@@ -956,9 +943,19 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                  isPicker: false,
                                  mapStyle: MapStyle.premium3D,
                                )
-                             : Text(
-                                 _property['latitude'] != null ? context.tr('map_view') : '',
-                                 style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                              : Padding(
+                                 padding: const EdgeInsets.all(20),
+                                 child: Column(
+                                   mainAxisAlignment: MainAxisAlignment.center,
+                                   children: [
+                                     Icon(Icons.map_outlined, color: theme.dividerColor, size: 40),
+                                     const SizedBox(height: 8),
+                                     Text(
+                                       context.tr('location_not_set'),
+                                       style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12),
+                                     ),
+                                   ],
+                                 ),
                                ),
                         ),
                       ],

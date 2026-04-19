@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../theme/language_provider.dart';
 import '../theme/auth_provider.dart';
 import '../services/profile_service.dart';
+import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -561,27 +562,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Stack(
                             children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: Image.network(
-                                  (() {
-                                    final avatarUrl = user?['full_avatar_url'] ?? user?['avatar'];
-                                    if (avatarUrl != null && avatarUrl.toString().startsWith('http')) {
-                                      return avatarUrl.toString();
-                                    }
-                                    return 'https://ui-avatars.com/api/?name=${Uri.encodeComponent((user?['full_name'] ?? user?['name'] ?? 'User').toString())}';
-                                  })(),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: Colors.grey.withValues(alpha: 0.2),
-                                    child: const Icon(Icons.person, size: 40, color: Colors.grey),
-                                  ),
-                                ),
+                              UserAvatar(
+                                name: (user?['full_name'] ?? user?['name'] ?? 'User').toString(),
+                                imageUrl: (user?['full_avatar_url'] ?? user?['avatar'])?.toString(),
+                                size: 100,
                               ),
                               Positioned(
                                 bottom: 0,
@@ -598,11 +582,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           AppColors.primary,
                                           Color(0xFF16A085)
                                         ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
                                     ),
                                     alignment: Alignment.center,
-                                    child: const Icon(Icons.edit,
-                                        size: 16, color: Colors.white),
+                                    child: const Icon(
+                                      Icons.edit,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),

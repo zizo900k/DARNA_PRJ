@@ -79,22 +79,31 @@ class _MapboxWebState extends State<_MapboxWeb> {
             container: 'map',
             style: '${MapConfig.getStyleUri(widget.mapStyle)}',
             center: [$lng, $lat],
-            zoom: ${isPremium ? 16 : 14},
-            pitch: ${isPremium ? 45 : 0},
+            zoom: ${isPremium ? 17 : 14}, // Zoom in more for satellite to show detail
+            pitch: 0, // Flat top-down view
+            antialias: true,
             attributionControl: false
         });
         
-        let marker = null;
-        if ($hasMarker || !${widget.isPicker}) {
-            // In display mode, always show marker if coordinates exist. In picker, show if exists.
+        map.on('load', () => {
+            // Add marker after load
+            if ($hasMarker || !${widget.isPicker}) {
+                if ($hasMarker) {
+                    new mapboxgl.Marker({ color: "#E74C3C" })
+                        .setLngLat([$lng, $lat])
+                        .addTo(map);
+                }
+            }
+        });
+
+        if (${widget.isPicker}) {
+            let marker = null;
             if ($hasMarker) {
                 marker = new mapboxgl.Marker({ color: "#E74C3C" })
                     .setLngLat([$lng, $lat])
                     .addTo(map);
             }
-        }
-
-        if (${widget.isPicker}) {
+            
             map.on('click', (e) => {
                 if (marker) marker.remove();
                 marker = new mapboxgl.Marker({ color: "#E74C3C" })

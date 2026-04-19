@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('messages', function (Blueprint $table) {
+            $table->enum('type', ['text', 'audio'])->default('text')->after('sender_id');
+            $table->string('audio_url')->nullable()->after('message');
+            $table->integer('audio_duration')->nullable()->after('audio_url');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('messages', function (Blueprint $table) {
+            $table->dropColumn(['type', 'audio_url', 'audio_duration']);
+        });
+    }
+};

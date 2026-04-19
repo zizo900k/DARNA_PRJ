@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
-import 'dart:io' show Platform;
 import 'api_service.dart';
 
 class PusherEvent {
@@ -30,9 +29,9 @@ class WebSocketService {
       final uri = Uri.parse(ApiService.baseUrl);
       return uri.host; 
     }
-    if (Platform.isAndroid) return '10.0.2.2';
-    if (Platform.isIOS) return '127.0.0.1';
-    return '192.168.1.100'; 
+    // For mobile (Android emulator/iOS sim), use the API host directly
+    final uri = Uri.parse(ApiService.baseUrl);
+    return uri.host;
   }
   
   String get _authEndpoint {

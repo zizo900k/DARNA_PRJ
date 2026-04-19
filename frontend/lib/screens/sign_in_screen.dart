@@ -7,6 +7,11 @@ import '../theme/language_provider.dart';
 import '../theme/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_input.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in_web/web_only.dart' as web;
+import 'package:google_sign_in/google_sign_in.dart' as google_auth;
+import '../services/api_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -18,6 +23,38 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   String _email = '';
   String _password = '';
+  StreamSubscription? _googleSignInSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _googleSignInSubscription = google_auth.GoogleSignIn.instance.authenticationEvents.listen((event) async {
+        if (event is google_auth.GoogleSignInAuthenticationEventSignIn) {
+          try {
+            final auth = await event.user.authentication;
+            final idToken = auth.idToken;
+            if (idToken != null) {
+              final response = await ApiService.post('/auth/google', body: {'id_token': idToken}, requiresAuth: false);
+              if (!mounted) return;
+              await context.read<AuthProvider>().handleGoogleSignInResponse(response);
+              if (mounted) context.go('/home');
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.redAccent));
+            }
+          }
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _googleSignInSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> _handleSignIn() async {
     bool isLoading = true;
@@ -33,6 +70,31 @@ class _SignInScreenState extends State<SignInScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+      // ignore: unused_local_variable
+      isLoading;
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    bool isLoading = true;
+    setState(() => isLoading = true);
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+      if (mounted) {
+        context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign-In failed: ${e.toString()}'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 3),
           ),
@@ -267,6 +329,61 @@ class _SignInScreenState extends State<SignInScreen> {
                                             : LightColors.border)),
                               ],
                             ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: kIsWeb
+                                ? SizedBox(
+                                    width: double.infinity,
+                                    height: 52,
+                                    child: web.renderButton(
+                                      configuration: web.GSIButtonConfiguration(
+                                        type: web.GSIButtonType.standard,
+                                        theme: web.GSIButtonTheme.outline,
+                                        size: web.GSIButtonSize.large,
+                                        text: web.GSIButtonText.continueWith,
+                                      ),
+                                    ),
+                                  )
+                                : Material(
+                                    color: Colors.white,
+                                    elevation: 2,
+                                    shadowColor: Colors.black.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: InkWell(
+                                      onTap: _handleGoogleSignIn,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey.shade300, width: 1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            SvgPicture.asset(
+                                              'assets/google.svg',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Text(
+                                              'Continue with Google',
+                                              style: TextStyle(
+                                                color: Colors.black87,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                fontFamily: 'Inter',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                           ),
 
                           // Social Login Buttons

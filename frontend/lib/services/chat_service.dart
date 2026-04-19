@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'api_service.dart';
 
 class ChatService {
@@ -33,6 +34,27 @@ class ChatService {
     final response = await ApiService.post(
       '/conversations/$conversationId/messages',
       body: {'message': message},
+    );
+    return Map<String, dynamic>.from(response);
+  }
+
+  /// send audio message
+  static Future<Map<String, dynamic>> sendAudioMessage({
+    required int conversationId,
+    required String audioPath,
+    int? durationMs,
+  }) async {
+    final fields = <String, String>{};
+    if (durationMs != null) fields['duration'] = durationMs.toString();
+
+    // ApiService utility expects XFile
+    final xFile = XFile(audioPath);
+    
+    final response = await ApiService.postMultipartSingle(
+      '/conversations/$conversationId/audio',
+      fileField: 'audio',
+      file: xFile,
+      fields: fields,
     );
     return Map<String, dynamic>.from(response);
   }

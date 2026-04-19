@@ -7,10 +7,21 @@ import 'theme/favorites_provider.dart';
 import 'theme/auth_provider.dart';
 import 'providers/property_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/call_provider.dart';
 import 'navigation/app_router.dart';
 
-void main() {
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart' show GoogleSignIn;
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  if (kIsWeb) {
+    await GoogleSignIn.instance.initialize(
+      clientId: '498032892592-v3kgf2h9h0ton7c3572v0rkb4l6t0m38.apps.googleusercontent.com',
+    );
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -20,6 +31,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PropertyProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider.value(value: CallProvider.instance),
       ],
       child: const DarnaApp(),
     ),

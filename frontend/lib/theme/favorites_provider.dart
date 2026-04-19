@@ -31,15 +31,15 @@ class FavoritesProvider with ChangeNotifier {
   Future<void> addFavorite(Map<String, dynamic> property) async {
     final propertyId = property['id'] as int;
     if (!isFavorite(propertyId)) {
-      // Optimistic update
-      _favorites.add({'property': property});
+      // Optimistic update — include 'id' at top level for isFavorite() check
+      _favorites.add({'id': propertyId, 'property': property, 'property_id': propertyId});
       notifyListeners();
 
       try {
         await FavoritesService.addFavorite(propertyId);
       } catch (e) {
         // Revert on failure
-        _favorites.removeWhere((item) => item['property'] != null && item['property']['id'] == propertyId);
+        _favorites.removeWhere((item) => (item['id'] == propertyId) || (item['property'] != null && item['property']['id'] == propertyId));
         _error = e.toString();
         notifyListeners();
       }

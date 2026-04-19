@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -55,6 +57,59 @@ class AuthController extends Controller
         }
 
         $user  = Auth::user();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login successful',
+            'user'    => $user,
+            'token'   => $token,
+        ]);
+    }
+
+    /**
+     * Google Login / Register.
+     */
+    public function googleAuth(Request $request)
+    {
+        $request->validate([
+            'id_token' => 'required|string',
+        ]);
+
+        $idToken = $request->id_token;
+        
+        // Verify token with Google public endpoint
+        $response = Http::get("https://oauth2.googleapis.com/tokeninfo?id_token={$idToken}");
+        
+        if ($response->failed() || !isset($response['sub'])) {
+            throw ValidationException::withMessages([
+                'id_token' => ['Invalid Google ID token.'],
+            ]);
+        }
+        
+        $googleUser = $response->json();
+        
+        // Find existing user by google_id or email
+        $user = User::where('google_id', $googleUser['sub'])
+                    ->orWhere('email', $googleUser['email'])
+                    ->first();
+                    
+        if ($user) {
+            // If user exists but no google_id, link them
+            if (!$user->google_id) {
+                $user->google_id = $googleUser['sub'];
+                $user->save();
+            }
+        } else {
+            // Create new user
+            $user = User::create([
+                'name' => $googleUser['name'],
+                'email' => $googleUser['email'],
+                'google_id' => $googleUser['sub'],
+                'password' => Hash::make(Str::random(24)),
+                'avatar' => $googleUser['picture'] ?? null,
+            ]);
+        }
+        
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

@@ -10,6 +10,7 @@ import '../theme/theme_provider.dart';
 import '../theme/auth_provider.dart';
 import '../services/profile_service.dart';
 import '../services/api_service.dart';
+import '../widgets/user_avatar.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -225,17 +226,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               builder: (context, authProvider, _) {
                                 final user = authProvider.user;
                                 if (_avatarFile != null) {
+                                  // For local file preview, Image.network(local_path) doesn't work well on Flutter Web
+                                  // But if it's a blob URL it might. For now, we prefer the UserAvatar logic.
+                                  // Actually, since _avatarFile is a local file, we can't easily use UserAvatar with a local XFile path without more logic.
+                                  // So we'll keep the specialized preview for local files.
                                   return Image.network(_avatarFile!.path, fit: BoxFit.cover);
                                 }
-                                return Image.network(
-                                  (user?['avatar'] != null && user!['avatar'].toString().startsWith('http')) 
-                                      ? user['avatar'].toString() 
-                                      : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent((user?['full_name'] ?? user?['name'] ?? 'User').toString())}',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: Colors.grey.withValues(alpha: 0.2),
-                                    child: const Icon(Icons.person, size: 60, color: Colors.grey),
-                                  ),
+                                return UserAvatar(
+                                  name: (user?['full_name'] ?? user?['name'] ?? 'User').toString(),
+                                  imageUrl: (user?['full_avatar_url'] ?? user?['avatar'])?.toString(),
+                                  size: 120,
                                 );
                               },
                             ),

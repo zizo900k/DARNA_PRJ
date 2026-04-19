@@ -31,9 +31,10 @@ class PropertyService {
     return response as Map<String, dynamic>;
   }
 
-  static Future<Map<String, dynamic>> getNearby(int id, {int limit = 5}) async {
+  static Future<List<dynamic>> getNearby(int id, {int limit = 5}) async {
     final response = await ApiService.get('/properties/nearby/$id?limit=$limit', requiresAuth: false);
-    return response as Map<String, dynamic>;
+    if (response is List) return response;
+    return [];
   }
 
   static Future<Map<String, dynamic>> getCategories() async {

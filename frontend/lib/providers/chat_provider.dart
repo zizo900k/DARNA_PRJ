@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../services/chat_service.dart';
 import '../services/websocket_service.dart';
+import 'call_provider.dart';
 
 class ChatProvider with ChangeNotifier {
   int _unreadCount = 0;
@@ -50,10 +51,15 @@ class ChatProvider with ChangeNotifier {
     // When a conversation is updated (new message received)
     fetchUnreadCount();
 
-    // If the event payload contains a conversation_id, auto mark it as delivered
     try {
       final payloadStr = event is Map ? (event['data'] ?? '{}') : event.data;
       final payload = payloadStr is String ? json.decode(payloadStr) : payloadStr;
+      
+      final eventName = event is Map ? event['eventName'] : event.eventName;
+      if (eventName == 'call.signal' || eventName == r'App\Events\CallSignal') {
+         CallProvider.instance.handleSignal(payload);
+         return; // Don't process as a normal message
+      }
 
       if (payload['conversation_id'] != null) {
         ChatService.markDelivered(payload['conversation_id']).catchError((_) {});

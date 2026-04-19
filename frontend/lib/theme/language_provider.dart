@@ -96,6 +96,7 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_me': 'Delete for me',
       'delete_for_everyone': 'Delete for everyone',
       'message_deleted': 'This message was deleted',
+      'recording': 'Recording...',
       // Property Details
       'bedrooms': 'Bedrooms',
       'bathroom': 'Bathroom',
@@ -319,6 +320,7 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_me': 'Supprimer pour moi',
       'delete_for_everyone': 'Supprimer pour tout le monde',
       'message_deleted': 'Ce message a été supprimé',
+      'recording': 'Enregistrement...',
       // Property Details
       'bedrooms': 'Chambres',
       'bathroom': 'Salle de bain',
@@ -541,6 +543,7 @@ class LanguageProvider with ChangeNotifier {
       'delete_for_me': 'حذف عندي',
       'delete_for_everyone': 'حذف عند الجميع',
       'message_deleted': 'تم حذف هذه الرسالة',
+      'recording': 'جاري التسجيل...',
       // Property Details
       'bedrooms': 'غرف نوم',
       'bathroom': 'حمام',

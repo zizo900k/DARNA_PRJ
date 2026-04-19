@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/profile_service.dart';
@@ -73,6 +73,32 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      final response = await AuthService.googleLogin();
+      
+      final token = response['token'] ?? response['data']?['token'];
+      final userData = response['user'] ?? response['data']?['user'];
+      
+      await ApiService.saveToken(token);
+      _user = userData;
+      _isLoggedIn = true;
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> handleGoogleSignInResponse(Map<String, dynamic> response) async {
+    final token = response['token'] ?? response['data']?['token'];
+    final userData = response['user'] ?? response['data']?['user'];
+    
+    await ApiService.saveToken(token);
+    _user = userData;
+    _isLoggedIn = true;
+    notifyListeners();
   }
 
   Future<void> logout() async {

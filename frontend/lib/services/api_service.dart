@@ -158,7 +158,11 @@ class ApiService {
 
       if (kIsWeb) {
          final bytes = await file.readAsBytes();
-         request.files.add(http.MultipartFile.fromBytes(fileField, bytes, filename: file.name));
+         String fileName = file.name;
+         if (!fileName.contains('.')) {
+           fileName = '$fileName.webm';
+         }
+         request.files.add(http.MultipartFile.fromBytes(fileField, bytes, filename: fileName));
       } else {
          request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
       }
