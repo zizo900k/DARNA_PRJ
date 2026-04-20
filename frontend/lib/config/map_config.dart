@@ -4,8 +4,7 @@ enum MapStyle {
 }
 
 class MapConfig {
-  // Mapbox Public Token
-  static const String mapboxToken = 'YOUR_MAPBOX_TOKEN_HERE';
+  static const String mapboxToken = 'YOUR_MAPBOX_TOKEN';
 
   // Helper method to resolve Mapbox Style URI
   static String getStyleUri(MapStyle style) {
