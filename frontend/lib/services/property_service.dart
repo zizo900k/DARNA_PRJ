@@ -88,5 +88,13 @@ class PropertyService {
   static Future<void> deletePhoto(int propertyId, int photoId) async {
     await ApiService.delete('/properties/$propertyId/photos/$photoId');
   }
+
+  static Future<List<Map<String, dynamic>>> getTopLocations() async {
+    final response = await ApiService.get('/locations/top', requiresAuth: false);
+    if (response is List) {
+      return response.map((item) => item as Map<String, dynamic>).toList();
+    }
+    return [];
+  }
 }
 

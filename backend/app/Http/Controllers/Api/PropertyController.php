@@ -76,6 +76,19 @@ class PropertyController extends Controller
         }
 
         // Sort
+        if ($request->has('random')) {
+            $query->inRandomOrder();
+            $limit = $request->input('limit', 15);
+            $properties = $query->limit($limit)->get();
+            // Return in same format as paginator for frontend compatibility
+            return response()->json([
+                'data' => $properties,
+                'current_page' => 1,
+                'last_page' => 1,
+                'total' => $properties->count()
+            ]);
+        }
+
         $sortBy  = $request->input('sort_by', 'created_at');
         $sortDir = $request->input('sort_dir', 'desc');
         $allowed = ['created_at', 'price', 'price_per_month', 'rating', 'area'];
@@ -85,7 +98,7 @@ class PropertyController extends Controller
             $query->latest();
         }
 
-        $properties = $query->paginate(15);
+        $properties = $query->paginate($request->input('limit', 15));
 
         return response()->json($properties);
     }
@@ -210,14 +223,55 @@ class PropertyController extends Controller
     public function nearby(Request $request, $id)
     {
         $property = Property::findOrFail($id);
-        $limit = $request->query('limit', 5);
-        $nearby = Property::with(['user', 'category', 'photos'])
-            ->where('id', '!=', $id)
-            ->where('location', $property->location)
-            ->limit($limit)
-            ->get();
+        $limit = $request->query('limit', 10);
+
+        // If the main property has lat/lng, use geolocation distance
+        if ($property->latitude && $property->longitude) {
+            $lat = $property->latitude;
+            $lng = $property->longitude;
+            $radiusKm = $request->query('radius', 50); // default 50km
+
+            $nearby = Property::with(['user', 'category', 'photos'])
+                ->where('id', '!=', $id)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
+                ->having('distance', '<', $radiusKm)
+                ->orderBy('distance')
+                ->limit($limit)
+                ->get();
+        } else {
+            // Fallback: match by location string
+            $nearby = Property::with(['user', 'category', 'photos'])
+                ->where('id', '!=', $id)
+                ->where('location', $property->location)
+                ->limit($limit)
+                ->get();
+        }
             
         return response()->json($nearby);
+    }
+
+    public function topLocations()
+    {
+        $targetCities = ['Laayoune', 'Dakhla', 'Boujdour', 'Smara'];
+
+        // Get counts for these specific cities
+        $counts = Property::whereIn('location', $targetCities)
+            ->groupBy('location')
+            ->selectRaw('location as name, count(*) as count')
+            ->get()
+            ->keyBy('name');
+
+        // Ensure all 4 cities are returned, even if count is 0
+        $result = collect($targetCities)->map(function ($city) use ($counts) {
+            return [
+                'name' => $city,
+                'count' => $counts->has($city) ? $counts[$city]->count : 0
+            ];
+        });
+
+        return response()->json($result);
     }
 
     public function locations()

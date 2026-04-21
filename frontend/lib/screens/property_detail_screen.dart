@@ -1239,6 +1239,31 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                     ),
                   ),
 
+                  // View on Map button
+                  if (_property['latitude'] != null && _property['longitude'] != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 20),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            context.push('/nearby-map', extra: _property);
+                          },
+                          icon: const Icon(Icons.explore_rounded, size: 18),
+                          label: Text(context.tr('view_on_map')),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Cost of Living Section
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24)

@@ -17,14 +17,51 @@ class AuthService {
     required String password,
     String? phone,
   }) async {
+    return await requestCode(fullName: fullName, email: email, password: password, phone: phone);
+  }
+
+  static Future<Map<String, dynamic>> requestCode({
+    required String fullName,
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
     final response = await ApiService.post(
-      '/register',
+      '/register/request-code',
       body: {
         'name': fullName,
         'email': email,
         'password': password,
         'password_confirmation': password,
         if (phone != null) 'phone': phone,
+      },
+      requiresAuth: false,
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> verifyCode({
+    required String email,
+    required String code,
+  }) async {
+    final response = await ApiService.post(
+      '/register/verify-code',
+      body: {
+        'email': email,
+        'code': code,
+      },
+      requiresAuth: false,
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> resendCode({
+    required String email,
+  }) async {
+    final response = await ApiService.post(
+      '/register/resend-code',
+      body: {
+        'email': email,
       },
       requiresAuth: false,
     );
@@ -44,11 +81,11 @@ class AuthService {
   }
 
   static Future<Map<String, dynamic>> googleLogin() async {
-    await google_auth.GoogleSignIn.instance.initialize(
-      clientId: '498032892592-v3kgf2h9h0ton7c3572v0rkb4l6t0m38.apps.googleusercontent.com',
-    );
+    final google_auth.GoogleSignInAccount? googleUser = await google_auth.GoogleSignIn.instance.authenticate();
     
-    final google_auth.GoogleSignInAccount googleUser = await google_auth.GoogleSignIn.instance.authenticate();
+    if (googleUser == null) {
+      throw Exception('Google Sign-In was cancelled or failed.');
+    }
     
     final google_auth.GoogleSignInAuthentication googleAuth = await googleUser.authentication;
     

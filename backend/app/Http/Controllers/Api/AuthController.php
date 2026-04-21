@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WelcomeToDarnaMail;
+use App\Mail\VerificationCodeMail;
 use App\Models\User;
+use App\Models\PendingRegistration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +20,137 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Register a new user.
+     * Request an OTP for registration.
+     */
+    public function requestCode(Request $request)
+    {
+        $validated = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8',
+            'phone'    => 'nullable|string|max:20',
+        ], [
+            'email.unique' => 'This email is already registered.'
+        ]);
+
+        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expiresAt = now()->addMinutes(10);
+
+        PendingRegistration::where('email', $validated['email'])->delete();
+
+        PendingRegistration::create([
+            'name'       => $validated['name'],
+            'email'      => $validated['email'],
+            'phone'      => $validated['phone'] ?? null,
+            'password'   => Hash::make($validated['password']),
+            'otp_code'   => $otpCode,
+            'expires_at' => $expiresAt,
+        ]);
+
+        try {
+            Mail::to($validated['email'])->send(new VerificationCodeMail($otpCode, $validated['name']));
+        } catch (\Throwable $e) {
+            Log::warning('OTP email failed for ' . $validated['email'] . ': ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Verification code sent to email.',
+        ]);
+    }
+
+    /**
+     * Verify OTP and complete registration.
+     */
+    public function verifyCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+            'code'  => 'required|string|size:6',
+        ]);
+
+        $pendingUser = PendingRegistration::where('email', $request->email)->first();
+
+        if (!$pendingUser) {
+            return response()->json(['message' => 'No pending registration found.'], 404);
+        }
+
+        if ($pendingUser->otp_code !== $request->code) {
+            return response()->json(['message' => 'Invalid verification code.'], 400);
+        }
+
+        if (now()->greaterThan($pendingUser->expires_at)) {
+            return response()->json(['message' => 'The verification code has expired.'], 400);
+        }
+
+        if (User::where('email', $pendingUser->email)->exists()) {
+            $pendingUser->delete();
+            return response()->json(['message' => 'This email is already registered.'], 400);
+        }
+
+        $user = User::create([
+            'name'     => $pendingUser->name,
+            'email'    => $pendingUser->email,
+            'phone'    => $pendingUser->phone,
+            'password' => $pendingUser->password,
+        ]);
+
+        $pendingUser->delete();
+
+        try {
+            Mail::to($user->email)->send(new WelcomeToDarnaMail($user));
+        } catch (\Throwable $e) {
+            Log::warning('Welcome email failed for user ' . $user->id . ': ' . $e->getMessage());
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'User verified and registered successfully',
+            'user'    => $user,
+            'token'   => $token,
+        ], 201);
+    }
+
+    /**
+     * Resend the OTP code.
+     */
+    public function resendCode(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email',
+        ]);
+
+        $pendingUser = PendingRegistration::where('email', $request->email)->first();
+
+        if (!$pendingUser) {
+            return response()->json(['message' => 'No pending registration found.'], 404);
+        }
+
+        // Cooldown: prevent resend if requested within last 1 minute
+        if ($pendingUser->updated_at && now()->diffInSeconds($pendingUser->updated_at) < 60) {
+            return response()->json(['message' => 'Please wait before requesting a new code.'], 429);
+        }
+
+        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $pendingUser->update([
+            'otp_code' => $otpCode,
+            'expires_at' => now()->addMinutes(10),
+            'updated_at' => now(), 
+        ]);
+
+        try {
+            Mail::to($pendingUser->email)->send(new VerificationCodeMail($otpCode, $pendingUser->name));
+        } catch (\Throwable $e) {
+            Log::warning('OTP resend email failed for ' . $pendingUser->email . ': ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Verification code resent successfully.',
+        ]);
+    }
+
+    /**
+     * Register a new user (Legacy).
      */
     public function register(Request $request)
     {

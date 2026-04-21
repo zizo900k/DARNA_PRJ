@@ -16,6 +16,9 @@ import '../screens/add_listing_screen.dart';
 import '../screens/update_listing_screen.dart';
 import '../screens/home_guest_screen.dart';
 import '../screens/transactions_screen.dart';
+import '../screens/verify_email_screen.dart';
+import '../screens/nearby_map_screen.dart';
+import '../screens/top_locations_screen.dart';
 import '../data/properties_data.dart';
 
 import 'scaffold_with_nav_bar.dart';
@@ -93,6 +96,14 @@ class AppRouter {
           return const SignUpScreen();
         },
       ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (BuildContext context, GoRouterState state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final email = extra?['email'] as String? ?? '';
+          return VerifyEmailScreen(email: email);
+        },
+      ),
       // Redirect /login → /signin for convenience
       GoRoute(
         path: '/login',
@@ -130,7 +141,12 @@ class AppRouter {
               GoRoute(
                 path: '/search',
                 builder: (BuildContext context, GoRouterState state) {
-                  return const SearchScreen();
+                  final extra = state.extra as Map<String, dynamic>?;
+                  final initialCity = extra?['city'] as String?;
+                  return SearchScreen(
+                    key: ValueKey(initialCity ?? 'search-tab'),
+                    initialCity: initialCity,
+                  );
                 },
               ),
             ],
@@ -212,6 +228,21 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (BuildContext context, GoRouterState state) {
           return const EditProfileScreen();
+        },
+      ),
+      GoRoute(
+        path: '/nearby-map',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          final property = state.extra as Map<String, dynamic>;
+          return NearbyMapScreen(property: property);
+        },
+      ),
+      GoRoute(
+        path: '/top-locations',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          return const TopLocationsScreen();
         },
       ),
       GoRoute(

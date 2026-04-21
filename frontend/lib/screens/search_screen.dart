@@ -11,14 +11,15 @@ import '../services/api_service.dart';
 import 'dart:async';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final String? initialCity;
+  const SearchScreen({super.key, this.initialCity});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  String _searchQuery = '';
+  late String _searchQuery;
   String _selectedCategory = 'All';
   String _sortOption = 'Default';
   Map<String, dynamic>? _appliedFilters;
@@ -41,10 +42,14 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = true;
   Timer? _debounce;
   String? _error;
+  late TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchQuery = widget.initialCity ?? '';
+    _searchController = TextEditingController(text: _searchQuery);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchProperties();
     });
@@ -53,6 +58,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -455,6 +461,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextField(
+                              controller: _searchController,
                               onChanged: _onSearchChanged,
                               style: TextStyle(
                                 fontSize: 15,
@@ -475,6 +482,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (_searchQuery.isNotEmpty)
                             GestureDetector(
                               onTap: () {
+                                _searchController.clear();
                                 _onSearchChanged('');
                                 FocusScope.of(context).unfocus();
                               },

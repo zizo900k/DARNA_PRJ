@@ -6,6 +6,8 @@ import '../widgets/category_pill.dart';
 import '../widgets/property_card.dart';
 import '../widgets/filter_modal.dart';
 import '../data/properties_data.dart';
+import 'package:provider/provider.dart';
+import '../providers/property_provider.dart';
 
 class HomeGuestScreen extends StatefulWidget {
   const HomeGuestScreen({super.key});
@@ -16,6 +18,19 @@ class HomeGuestScreen extends StatefulWidget {
 
 class _HomeGuestScreenState extends State<HomeGuestScreen> {
   String _selectedCategory = 'All';
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      Future.microtask(() {
+        if (!mounted) return;
+        context.read<PropertyProvider>().loadGuestScreenData();
+      });
+    }
+  }
 
   void _showFilterModal() {
     showModalBottomSheet(
@@ -132,13 +147,24 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
     );
   }
 
+  Widget _buildGuestCard(Widget child) {
+    return GestureDetector(
+      onTap: _showLoginPrompt,
+      behavior: HitTestBehavior.opaque,
+      child: IgnorePointer(
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final propertyProvider = context.watch<PropertyProvider>();
+    final isLoading = propertyProvider.isLoading;
 
-    final featuredProperties =
-        PropertiesData.properties.where((p) => p.featured).toList();
+    final guestProperties = propertyProvider.guestProperties;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -333,17 +359,27 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Featured Properties
+                  // Guest Properties
+                  if (isLoading)
+                     const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                  else if (guestProperties.isEmpty)
+                     Padding(
+                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                       child: Center(child: Text(context.tr('no_featured_found'), style: TextStyle(color: theme.textTheme.bodyMedium?.color))),
+                     )
+                  else
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
-                      children: featuredProperties.map((property) {
+                      children: guestProperties.map((property) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 16),
-                          child: PropertyCard(
-                            property: property,
-                            variant: PropertyCardVariant.horizontal,
+                          child: _buildGuestCard(
+                            PropertyCard(
+                              property: property,
+                              variant: PropertyCardVariant.horizontal,
+                            ),
                           ),
                         );
                       }).toList(),

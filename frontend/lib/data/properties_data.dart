@@ -28,6 +28,8 @@ class Property {
   final String image;
   final bool featured;
   final String? propertyLabel;
+  final double? latitude;
+  final double? longitude;
 
   const Property({
     required this.id,
@@ -45,6 +47,8 @@ class Property {
     required this.image,
     required this.featured,
     this.propertyLabel,
+    this.latitude,
+    this.longitude,
   });
   Map<String, dynamic> toMap() {
     return {
@@ -63,6 +67,8 @@ class Property {
       'image': image,
       'featured': featured,
       'propertyLabel': propertyLabel,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 
@@ -86,6 +92,8 @@ class Property {
           : 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image',
       featured: json['featured'] == 1 || json['featured'] == true,
       propertyLabel: json['property_label'],
+      latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
+      longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
     );
   }
 }

@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in_web/web_only.dart' as web;
 import 'package:google_sign_in/google_sign_in.dart' as google_auth;
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -32,13 +33,12 @@ class _SignInScreenState extends State<SignInScreen> {
       _googleSignInSubscription = google_auth.GoogleSignIn.instance.authenticationEvents.listen((event) async {
         if (event is google_auth.GoogleSignInAuthenticationEventSignIn) {
           try {
-            final auth = await event.user.authentication;
-            final idToken = auth.idToken;
-            if (idToken != null) {
-              final response = await ApiService.post('/auth/google', body: {'id_token': idToken}, requiresAuth: false);
-              if (!mounted) return;
-              await context.read<AuthProvider>().handleGoogleSignInResponse(response);
-              if (mounted) context.go('/home');
+            final auth = event.user.authentication; // synchronous on web stream
+            if (auth is Future) {
+               final authResolved = await auth;
+               _processToken(authResolved.idToken);
+            } else {
+               _processToken((auth as dynamic).idToken);
             }
           } catch (e) {
             if (mounted) {
@@ -47,6 +47,15 @@ class _SignInScreenState extends State<SignInScreen> {
           }
         }
       });
+    }
+  }
+
+  Future<void> _processToken(String? idToken) async {
+    if (idToken != null) {
+      final response = await ApiService.post('/auth/google', body: {'id_token': idToken}, requiresAuth: false);
+      if (!mounted) return;
+      await context.read<AuthProvider>().handleGoogleSignInResponse(response);
+      if (mounted) context.go('/home');
     }
   }
 
@@ -335,38 +344,10 @@ class _SignInScreenState extends State<SignInScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              kIsWeb
-                                ? SizedBox(
-                                    width: 64,
-                                    height: 64,
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Container(
-                                          width: 64,
-                                          height: 64,
-                                          decoration: BoxDecoration(
-                                            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: isDark ? DarkColors.border : LightColors.border),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 40,
-                                          height: 40,
-                                          child: web.renderButton(
-                                            configuration: web.GSIButtonConfiguration(
-                                              type: web.GSIButtonType.icon,
-                                              shape: web.GSIButtonShape.pill,
-                                              theme: isDark ? web.GSIButtonTheme.filledBlack : web.GSIButtonTheme.outline,
-                                              size: web.GSIButtonSize.large,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : _SocialButton(
+                              Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  _SocialButton(
                                     customIcon: SvgPicture.string(
                                       '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
@@ -380,8 +361,24 @@ class _SignInScreenState extends State<SignInScreen> {
                                     ),
                                     size: 32,
                                     isDark: isDark,
-                                    onTap: _handleGoogleSignIn,
+                                    onTap: () {
+                                      if (!kIsWeb) _handleGoogleSignIn();
+                                    },
                                   ),
+                                  if (kIsWeb)
+                                    Positioned.fill(
+                                      child: Opacity(
+                                        opacity: 0.01,
+                                        child: web.renderButton(
+                                          configuration: web.GSIButtonConfiguration(
+                                            type: web.GSIButtonType.standard,
+                                            minimumWidth: 64,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                               const SizedBox(width: 16),
                               _SocialButton(
                                 customIcon: SvgPicture.string(

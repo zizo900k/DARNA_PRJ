@@ -1,10 +1,14 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 enum MapStyle {
   clean,
   premium3D,
 }
 
 class MapConfig {
-  static const String mapboxToken = 'YOUR_MAPBOX_TOKEN';
+  // Mapbox Public Token from environment
+  static String get mapboxToken => dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+
 
   // Helper method to resolve Mapbox Style URI
   static String getStyleUri(MapStyle style) {

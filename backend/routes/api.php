@@ -21,7 +21,12 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 |--------------------------------------------------------------------------
 */
 
-// Auth
+// Auth (OTP flow)
+Route::post('/register/request-code', [AuthController::class, 'requestCode']);
+Route::post('/register/verify-code',  [AuthController::class, 'verifyCode']);
+Route::post('/register/resend-code',  [AuthController::class, 'resendCode']);
+
+// Legacy Auth
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/auth/google', [AuthController::class, 'googleAuth']);
@@ -33,6 +38,7 @@ Route::get('/properties/statuses', [PropertyController::class, 'statuses']);
 Route::get('/properties/nearby/{id}', [PropertyController::class, 'nearby']);
 Route::get('/properties/{property}', [PropertyController::class, 'show']);
 
+Route::get('/locations/top', [PropertyController::class, 'topLocations']);
 Route::get('/locations', [PropertyController::class, 'locations']);
 Route::get('/stats', [PropertyController::class, 'stats']);
 Route::get('/agents', [\App\Http\Controllers\Api\AgentController::class, 'index']);

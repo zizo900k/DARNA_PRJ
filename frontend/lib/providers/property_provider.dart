@@ -6,6 +6,7 @@ class PropertyProvider with ChangeNotifier {
   List<Property> _featuredProperties = [];
   List<Property> _rentalProperties = [];
   List<Property> _recentProperties = [];
+  List<Property> _guestProperties = [];
   
   bool _isLoading = false;
   String? _error;
@@ -13,6 +14,7 @@ class PropertyProvider with ChangeNotifier {
   List<Property> get featuredProperties => List.unmodifiable(_featuredProperties);
   List<Property> get rentalProperties => List.unmodifiable(_rentalProperties);
   List<Property> get recentProperties => List.unmodifiable(_recentProperties);
+  List<Property> get guestProperties => List.unmodifiable(_guestProperties);
   
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -53,6 +55,49 @@ class PropertyProvider with ChangeNotifier {
       return listData.map((e) => Property.fromJson(e)).toList();
     } catch (e) {
       rethrow;
+    }
+  }
+
+  Future<void> loadGuestScreenData() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await PropertyService.getProperties(filters: {'random': true, 'limit': 15});
+      final data = List<Map<String, dynamic>>.from(response['data'] ?? []);
+      
+      var seenUsers = <int>{};
+      List<Property> diverse = [];
+      
+      // First pass: 1 property per user
+      for (var item in data) {
+         int? userId = item['user']?['id'] ?? item['user_id'];
+         if (userId != null && !seenUsers.contains(userId)) {
+             seenUsers.add(userId);
+             diverse.add(Property.fromJson(item));
+         } else if (userId == null) {
+             diverse.add(Property.fromJson(item));
+         }
+      }
+      
+      // Second pass: Fill the rest up to 15
+      if (diverse.length < 15) {
+          for (var item in data) {
+              if (diverse.length >= 15) break;
+              var prop = Property.fromJson(item);
+              if (!diverse.any((p) => p.id == prop.id)) {
+                  diverse.add(prop);
+              }
+          }
+      }
+      
+      _guestProperties = diverse;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

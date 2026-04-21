@@ -12,9 +12,12 @@ import 'navigation/app_router.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart' show GoogleSignIn;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(
@@ -22,6 +25,7 @@ void main() async {
     );
   }
 
+  
   runApp(
     MultiProvider(
       providers: [

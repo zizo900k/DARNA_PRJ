@@ -11,6 +11,7 @@ import '../widgets/category_pill.dart';
 import '../widgets/property_card.dart';
 import '../widgets/rental_property_card.dart';
 import '../widgets/filter_modal.dart';
+import '../services/property_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'All';
   String _searchQuery = '';
   bool _initialized = false;
+  
+  List<Map<String, dynamic>> _topLocations = [];
+  bool _isTopLocationsLoading = true;
 
   @override
   void didChangeDependencies() {
@@ -34,7 +38,26 @@ class _HomeScreenState extends State<HomeScreen> {
         // ignore: use_build_context_synchronously
         context.read<PropertyProvider>().loadHomeScreenData();
         context.read<ChatProvider>().fetchUnreadCount();
+        _fetchTopLocations();
       });
+    }
+  }
+
+  Future<void> _fetchTopLocations() async {
+    try {
+      final data = await PropertyService.getTopLocations();
+      if (mounted) {
+        setState(() {
+          _topLocations = data;
+          _isTopLocationsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isTopLocationsLoading = false;
+        });
+      }
     }
   }
 
@@ -396,23 +419,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     _buildSectionHeader(
                         context.tr('top_locations'), context.tr('explore'),
-                        subtitle: context.tr('explore_popular')),
+                        subtitle: context.tr('explore_popular'),
+                        onExplore: () => context.go('/top-locations'),
+                    ),
+                    
+                    if (_isTopLocationsLoading)
+                      const SizedBox(
+                        height: 180,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else 
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
-                        children: [
-                          'Laayoune',
-                          'Dakhla',
-                          'Casablanca',
-                          'Marrakech'
-                        ].asMap().entries.map((entry) {
+                        children: _topLocations.asMap().entries.map((entry) {
                           final index = entry.key;
-                          final location = entry.value;
+                          final locationData = entry.value;
+                          final locationName = locationData['name'] as String;
+                          final listingsCount = locationData['count'] as int;
+                          
                           return TweenAnimationBuilder<double>(
                             tween: Tween(begin: 0.0, end: 1.0),
-                            duration:
-                                Duration(milliseconds: 400 + (index * 150)),
+                            duration: Duration(milliseconds: 400 + (index * 150)),
                             curve: Curves.easeOutCubic,
                             builder: (context, value, child) {
                               return Transform.translate(
@@ -425,66 +454,79 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             child: Container(
                               width: 140,
+                              height: 180,
                               margin: const EdgeInsets.only(right: 12),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                color:
-                                    isDark ? DarkColors.card : AppColors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: isDark
+                                      ? [DarkColors.backgroundSecondary, DarkColors.card]
+                                      : [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.02)],
+                                ),
                                 border: Border.all(
-                                  color: isDark
-                                      ? DarkColors.border
-                                      : LightColors.border,
-                                  width: 0.5,
+                                  color: isDark ? DarkColors.border : AppColors.primary.withValues(alpha: 0.1),
+                                  width: 1.5,
                                 ),
                               ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(20),
-                                  onTap: () {},
-                                  child: Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: AppColors.primary
-                                          .withValues(alpha: isDark ? 0.1 : 0.05),
-                                    ),
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: () {
+                                    context.go('/search', extra: {'city': locationName});
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
                                     child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Container(
-                                          width: 52,
-                                          height: 52,
+                                          padding: const EdgeInsets.all(14),
                                           decoration: BoxDecoration(
-                                            color: isDark
-                                                ? DarkColors.backgroundSecondary
-                                                : AppColors.white,
+                                            color: isDark ? DarkColors.card : Colors.white,
                                             shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.primary.withValues(alpha: 0.15),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
                                           ),
-                                          alignment: Alignment.center,
-                                          margin:
-                                              const EdgeInsets.only(bottom: 12),
-                                          child: const Icon(Icons.location_on,
-                                              size: 24,
-                                              color: AppColors.primary),
+                                          child: const Icon(
+                                            Icons.location_on,
+                                            color: AppColors.primary,
+                                            size: 26,
+                                          ),
                                         ),
+                                        const SizedBox(height: 14),
                                         Text(
-                                          location,
+                                          locationName,
+                                          textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: theme
-                                                .textTheme.bodyLarge?.color,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: theme.textTheme.bodyLarge?.color,
                                             letterSpacing: -0.2,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '20+ ${context.tr('listings_suffix')}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: theme
-                                                .textTheme.bodyMedium?.color,
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            '$listingsCount ${context.tr('listings_suffix') ?? 'listings'}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.primary,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -598,7 +640,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, String action, {String? subtitle}) {
+  Widget _buildSectionHeader(String title, String action, {String? subtitle, VoidCallback? onExplore}) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 16),
@@ -632,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           GestureDetector(
-            onTap: () => context.go('/search'),
+            onTap: onExplore ?? () => context.go('/search'),
             child: Text(
               action,
               style: const TextStyle(

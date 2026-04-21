@@ -56,12 +56,22 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> register(String fullName, String email, String password, {String? phone}) async {
     try {
-      final response = await AuthService.register(
+      await AuthService.requestCode(
         fullName: fullName,
         email: email,
         password: password,
         phone: phone,
       );
+      // Note: we do NOT log the user in yet or save token!
+      // We simply finish the request, the UI must navigate to verify-email.
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> verifyCode(String email, String code) async {
+    try {
+      final response = await AuthService.verifyCode(email: email, code: code);
       
       final token = response['token'] ?? response['data']?['token'];
       final userData = response['user'] ?? response['data']?['user'];
@@ -70,6 +80,14 @@ class AuthProvider with ChangeNotifier {
       _user = userData;
       _isLoggedIn = true;
       notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> resendCode(String email) async {
+    try {
+      await AuthService.resendCode(email: email);
     } catch (e) {
       rethrow;
     }
