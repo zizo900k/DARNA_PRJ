@@ -95,13 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   top: 12, left: 24, right: 24, bottom: 20),
               decoration: BoxDecoration(
                 color: theme.cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    offset: const Offset(0, 2),
-                    blurRadius: 8,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? DarkColors.border : LightColors.border.withValues(alpha: 0.5),
+                    width: 1,
                   ),
-                ],
+                ),
               ),
               child: Column(
                 children: [
@@ -237,12 +236,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: isDark
                                 ? DarkColors.backgroundSecondary
-                                : LightColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: isDark
-                                    ? DarkColors.border
-                                    : LightColors.border),
+                                : LightColors.backgroundSecondary.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(24),
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(
