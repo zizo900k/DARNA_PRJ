@@ -9,10 +9,10 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_input.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_sign_in_web/web_only.dart' as web;
 import 'package:google_sign_in/google_sign_in.dart' as google_auth;
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/google_sign_in_button/google_sign_in_button.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -369,12 +369,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                     Positioned.fill(
                                       child: Opacity(
                                         opacity: 0.01,
-                                        child: web.renderButton(
-                                          configuration: web.GSIButtonConfiguration(
-                                            type: web.GSIButtonType.standard,
-                                            minimumWidth: 64,
-                                          ),
-                                        ),
+                                        child: buildGoogleSignInWebButton(),
                                       ),
                                     ),
                                 ],

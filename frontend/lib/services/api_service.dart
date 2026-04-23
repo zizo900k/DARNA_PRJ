@@ -7,7 +7,8 @@ import 'package:image_picker/image_picker.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android emulator, 127.0.0.1 for iOS simulator, or your local IP for physical devices.
-  static const String baseUrl = 'http://127.0.0.1:8888/api'; 
+  // LOCAL DEV: 10.32.92.245:8888 | PRODUCTION: 68.221.171.205
+  static const String baseUrl = 'http://127.0.0.1:8888/api';
   
   static const String _tokenKey = 'auth_token';
 

@@ -352,7 +352,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final authProvider = context.read<AuthProvider>();
+    final authProvider = context.watch<AuthProvider>();
     final currentUserId = authProvider.user?['id'];
 
     final otherName = widget.otherUser?['name'] ?? 'User';
@@ -509,6 +509,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final otherAvatar = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
     final otherName = widget.otherUser?['name'] ?? 'User';
+    // We can use context.read here since the parent build method is already watching it
     final authProvider = context.read<AuthProvider>();
     final myAvatar = authProvider.user?['full_avatar_url'] ?? authProvider.user?['avatar'];
     final myName = authProvider.user?['name'] ?? '';

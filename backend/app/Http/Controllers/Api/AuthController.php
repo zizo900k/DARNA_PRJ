@@ -91,8 +91,12 @@ class AuthController extends Controller
             'name'     => $pendingUser->name,
             'email'    => $pendingUser->email,
             'phone'    => $pendingUser->phone,
-            'password' => $pendingUser->password,
+            'password' => 'temporary', // placeholder, overwritten below
         ]);
+
+        // Set the already-hashed password directly to bypass the 'hashed' cast
+        // which would double-hash it (requestCode already called Hash::make)
+        $user->forceFill(['password' => $pendingUser->password])->saveQuietly();
 
         $pendingUser->delete();
 

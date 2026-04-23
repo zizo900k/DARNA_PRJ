@@ -22,8 +22,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.darna_flutter"
-        // Minimum SDK 21 required by image_picker, cached_network_image etc.
-        minSdk = 21
+        // Minimum SDK 24 required by flutter_webrtc
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -48,3 +48,4 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+

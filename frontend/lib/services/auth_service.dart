@@ -104,4 +104,3 @@ class AuthService {
     return response as Map<String, dynamic>;
   }
 }
-
