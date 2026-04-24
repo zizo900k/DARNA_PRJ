@@ -6,9 +6,8 @@ use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PropertyController;
 use App\Http\Controllers\Api\PropertyPhotoController;
-use App\Http\Controllers\Api\RentController;
+use App\Http\Controllers\PropertyRequestController;
 use App\Http\Controllers\Api\ReviewController;
-use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\ChatController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -31,6 +30,10 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/auth/google', [AuthController::class, 'googleAuth']);
 
+// Password Reset
+Route::post('/password/forgot', [AuthController::class, 'forgotPassword']);
+Route::post('/password/reset', [AuthController::class, 'resetPassword']);
+
 // Public property listing & details
 Route::get('/properties',      [PropertyController::class, 'index']);
 Route::get('/properties/types', [PropertyController::class, 'types']);
@@ -42,6 +45,7 @@ Route::get('/locations/top', [PropertyController::class, 'topLocations']);
 Route::get('/locations', [PropertyController::class, 'locations']);
 Route::get('/stats', [PropertyController::class, 'stats']);
 Route::get('/agents', [\App\Http\Controllers\Api\AgentController::class, 'index']);
+Route::get('/agents/{id}', [\App\Http\Controllers\Api\AgentController::class, 'show']);
 
 // Categories
 Route::get('/categories',          [CategoryController::class, 'index']);
@@ -88,21 +92,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notifications
     Route::get('/notifications',                           [NotificationController::class, 'index']);
-    Route::put('/notifications/{notification}/read',       [NotificationController::class, 'markAsRead']);
+    Route::get('/notifications/unread-count',              [NotificationController::class, 'unreadCount']);
     Route::put('/notifications/read-all',                  [NotificationController::class, 'markAllAsRead']);
+    Route::put('/notifications/{notification}/read',       [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}',         [NotificationController::class, 'destroy']);
 
-    // Rents
-    Route::get('/rents',          [RentController::class, 'index']);
-    Route::post('/rents',         [RentController::class, 'store']);
-    Route::get('/rents/{rent}',   [RentController::class, 'show']);
-    Route::put('/rents/{rent}',   [RentController::class, 'update']);
-
-    // Sales
-    Route::get('/sales',          [SaleController::class, 'index']);
-    Route::post('/sales',         [SaleController::class, 'store']);
-    Route::get('/sales/{sale}',   [SaleController::class, 'show']);
-    Route::put('/sales/{sale}',   [SaleController::class, 'update']);
+    // Property Requests (Appointments, Visits, etc.)
+    Route::get('/requests',                                 [PropertyRequestController::class, 'index']);
+    Route::post('/properties/{id}/requests',                [PropertyRequestController::class, 'store']);
+    Route::put('/requests/{id}/status',                     [PropertyRequestController::class, 'updateStatus']);
 
     // Admin-only: Category management
     Route::post('/categories',              [CategoryController::class, 'store']);

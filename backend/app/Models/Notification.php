@@ -6,19 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
-    protected $fillable = ['message', 'is_read', 'user_id', 'property_id'];
+    protected $fillable = ['user_id', 'type', 'title', 'body', 'data', 'is_read'];
 
     protected $casts = [
         'is_read' => 'boolean',
+        'data' => 'array',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function property()
-    {
-        return $this->belongsTo(Property::class);
     }
 }

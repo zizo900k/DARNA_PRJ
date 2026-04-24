@@ -79,24 +79,14 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class);
     }
 
-    public function rentedProperties()
+    public function sentRequests()
     {
-        return $this->hasMany(Rent::class, 'tenant_id');
+        return $this->hasMany(PropertyRequest::class, 'sender_id');
     }
 
-    public function ownedRents()
+    public function receivedRequests()
     {
-        return $this->hasMany(Rent::class, 'owner_id');
-    }
-
-    public function purchases()
-    {
-        return $this->hasMany(Sale::class, 'buyer_id');
-    }
-
-    public function sales()
-    {
-        return $this->hasMany(Sale::class, 'seller_id');
+        return $this->hasMany(PropertyRequest::class, 'owner_id');
     }
 
     public function conversations()

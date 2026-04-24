@@ -174,6 +174,15 @@ class ChatController extends Controller
         $receiverId = $conversation->user1_id === $userId ? $conversation->user2_id : $conversation->user1_id;
         broadcast(new ConversationUpdated($receiverId, $conversation->id));
 
+        $notification = \App\Models\Notification::create([
+            'user_id' => $receiverId,
+            'type' => 'new_message',
+            'title' => 'New message from ' . $request->user()->name,
+            'body' => \Illuminate\Support\Str::limit($request->message, 50),
+            'data' => ['conversation_id' => $conversation->id],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notification));
+
         return response()->json($message, 201);
     }
 
@@ -281,6 +290,15 @@ class ChatController extends Controller
 
             $receiverId = $conversation->user1_id === $userId ? $conversation->user2_id : $conversation->user1_id;
             broadcast(new ConversationUpdated($receiverId, $conversation->id));
+
+            $notification = \App\Models\Notification::create([
+                'user_id' => $receiverId,
+                'type' => 'new_voice_message',
+                'title' => 'New voice message from ' . $request->user()->name,
+                'body' => '🎤 Voice message',
+                'data' => ['conversation_id' => $conversation->id],
+            ]);
+            broadcast(new \App\Events\NotificationCreated($notification));
 
             return response()->json($message, 201);
         }
@@ -458,6 +476,17 @@ class ChatController extends Controller
 
             // Broadcast the system message so it appears immediately in the chat
             broadcast(new \App\Events\MessageSent($systemMessage))->toOthers();
+
+            if ($data['status'] === 'missed') {
+                $notification = \App\Models\Notification::create([
+                    'user_id' => $recipientId,
+                    'type' => 'missed_call',
+                    'title' => 'Missed call',
+                    'body' => 'You missed a call from ' . $user->name,
+                    'data' => ['conversation_id' => $conversation->id],
+                ]);
+                broadcast(new \App\Events\NotificationCreated($notification));
+            }
         }
 
         // Broadcast to the user's private channel

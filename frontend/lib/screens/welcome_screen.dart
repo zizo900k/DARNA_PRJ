@@ -2,14 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/language_provider.dart';
+import '../theme/auth_provider.dart';
 import '../widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _hasRedirected = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tryRedirect();
+  }
+
+  void _tryRedirect() {
+    if (_hasRedirected) return;
+    final authProvider = context.read<AuthProvider>();
+    if (!authProvider.isLoading && authProvider.isLoggedIn) {
+      _hasRedirected = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/home');
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
+    if (authProvider.isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    if (authProvider.isLoggedIn) {
+      // Redirect is already scheduled by didChangeDependencies
+      return const Scaffold(backgroundColor: Colors.black);
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallDevice = screenWidth < 380;

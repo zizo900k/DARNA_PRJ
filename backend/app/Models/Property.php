@@ -50,13 +50,8 @@ class Property extends Model
         return $this->hasMany(Notification::class);
     }
 
-    public function rent()
+    public function requests()
     {
-        return $this->hasOne(Rent::class);
-    }
-
-    public function sale()
-    {
-        return $this->hasOne(Sale::class);
+        return $this->hasMany(PropertyRequest::class);
     }
 }

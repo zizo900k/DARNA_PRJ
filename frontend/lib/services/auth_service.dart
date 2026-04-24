@@ -68,6 +68,33 @@ class AuthService {
     return response as Map<String, dynamic>;
   }
 
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await ApiService.post(
+      '/password/forgot',
+      body: {'email': email},
+      requiresAuth: false,
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    final response = await ApiService.post(
+      '/password/reset',
+      body: {
+        'email': email,
+        'code': code,
+        'password': password,
+        'password_confirmation': password,
+      },
+      requiresAuth: false,
+    );
+    return response as Map<String, dynamic>;
+  }
+
   static Future<void> logout() async {
     try {
       await ApiService.post('/logout');

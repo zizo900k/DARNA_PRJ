@@ -73,7 +73,7 @@ class ChatProvider with ChangeNotifier {
     _pingTimer?.cancel();
     _pingTimer = null;
     if (_currentUserId != null) {
-      WebSocketService().unsubscribe('private-user.$_currentUserId');
+      WebSocketService().unsubscribe('private-user.$_currentUserId', _onUserEvent);
     }
     _currentUserId = null;
     WebSocketService().disconnect();

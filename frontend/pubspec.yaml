@@ -61,6 +61,7 @@ dependencies:
   google_sign_in_web: ^1.0.0
   flutter_dotenv: ^6.0.1
   google_fonts: ^6.3.0
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:

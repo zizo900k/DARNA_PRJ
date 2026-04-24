@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
 import '../theme/language_provider.dart';
 import '../widgets/location_picker_map.dart';
+import '../data/properties_data.dart';
 
 class UpdateListingScreen extends StatefulWidget {
   final int propertyId;
@@ -63,11 +64,14 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
     // Map category from data
     final categoryData = p['category'];
     if (categoryData != null && categoryData is Map) {
-      _category = categoryData['name'] ?? 'House';
       _categoryId = categoryData['id'] ?? 4;
     } else {
-      _category = 'House';
       _categoryId = 4;
+    }
+    try {
+      _category = PropertiesData.propertyTypes.firstWhere((e) => e.id == _categoryId).value;
+    } catch (e) {
+      _category = 'house';
     }
     
     _location = p['location'] ?? 'Laayoune, Bloc H';
@@ -108,7 +112,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
     }
   }
 
-  final List<String> _categories = ['House', 'Apartment'];
+  final List<PropertyType> _categories = PropertiesData.propertyTypes;
   final List<String> _facilityOptions = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
 
   void _toggleFacility(String facility) {
@@ -316,12 +320,12 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: _categories.map((cat) {
-                            final isActive = _category == cat;
+                          children: _categories.map((catType) {
+                            final isActive = _category == catType.value;
                             return GestureDetector(
                               onTap: () => setState(() {
-                                _category = cat;
-                                _categoryId = cat == 'Apartment' ? 1 : 4;
+                                _category = catType.value;
+                                _categoryId = catType.id;
                               }),
                               child: Container(
                                 margin: const EdgeInsets.only(right: 8),
@@ -333,7 +337,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  context.tr(cat.toLowerCase()).isNotEmpty ? context.tr(cat.toLowerCase()) : cat,
+                                  context.tr(catType.value) ?? catType.name,
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -630,27 +634,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Edit Phone Number
-                      _buildSectionTitle(context.tr('edit_phone'), theme),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: TextField(
-                          controller: TextEditingController(text: _phoneNumber)..selection = TextSelection.collapsed(offset: _phoneNumber.length),
-                          onChanged: (val) => _phoneNumber = val,
-                          keyboardType: TextInputType.phone,
-                          style: TextStyle(fontSize: 15, color: theme.textTheme.bodyLarge?.color),
-                          decoration: InputDecoration(
-                            hintText: context.tr('phone_number'),
-                            hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
+
 
                       // Update Button
                       GestureDetector(

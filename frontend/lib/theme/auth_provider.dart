@@ -25,10 +25,16 @@ class AuthProvider with ChangeNotifier {
         _user = response['data'] ?? response;
         _isLoggedIn = true;
       } catch (e) {
-        // Token invalid or expired
-        await ApiService.removeToken();
-        _isLoggedIn = false;
-        _user = null;
+        if (e is ApiException && e.statusCode == 401) {
+          // Token is actually invalid or expired
+          await ApiService.removeToken();
+          _isLoggedIn = false;
+          _user = null;
+        } else {
+          // Network error or server error (not 401)
+          // Keep the user logged in but we might not have fresh profile data
+          _isLoggedIn = true;
+        }
       }
     } else {
       _isLoggedIn = false;

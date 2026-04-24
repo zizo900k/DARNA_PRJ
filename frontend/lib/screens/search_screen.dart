@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 import '../theme/language_provider.dart';
 import '../data/properties_data.dart';
@@ -112,11 +113,18 @@ class _SearchScreenState extends State<SearchScreen> {
         if (_appliedFilters!['cashInHand'] != null) filters['cashInHand'] = _appliedFilters!['cashInHand'];
         if (_appliedFilters!['monthlyInstallment'] != null) filters['monthlyInstallment'] = _appliedFilters!['monthlyInstallment'];
         if (_appliedFilters!['numberOfRooms'] != null) filters['numberOfRooms'] = _appliedFilters!['numberOfRooms'];
+        if (_appliedFilters!['listingType'] != null && _appliedFilters!['listingType'] != 'all') filters['type'] = _appliedFilters!['listingType'];
+        if (_appliedFilters!['propertyStatus'] != null && _appliedFilters!['propertyStatus'] != 'all') filters['propertyStatus'] = _appliedFilters!['propertyStatus'];
         
         List<String> types = List<String>.from(_appliedFilters!['propertyTypes'] ?? []);
         if (types.isNotEmpty && _selectedCategory == 'All') {
            if (types.contains('apartment')) filters['category_id'] = 1;
            else if (types.contains('villa')) filters['category_id'] = 2;
+           else if (types.contains('house')) filters['category_id'] = 4;
+           else if (types.contains('studio')) filters['category_id'] = 3;
+           else if (types.contains('commercial')) filters['category_id'] = 5;
+           else if (types.contains('riad')) filters['category_id'] = 7;
+           else if (types.contains('chalet')) filters['category_id'] = 8;
         }
       }
 
@@ -713,7 +721,10 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
                               onTap: () {
-                                // TODO: Navigate to Agent Profile
+                                context.push('/agent/${agent['id']}', extra: {
+                                  'name': agent['name'] ?? 'Agent',
+                                  'avatar': agent['full_avatar_url'],
+                                });
                               },
                             ),
                           );

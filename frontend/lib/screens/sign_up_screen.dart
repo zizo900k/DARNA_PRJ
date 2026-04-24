@@ -84,7 +84,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _fullName,
         _email,
         _password,
-        phone: _phone.isNotEmpty ? _phone : null,
       );
       
       if (mounted) {
@@ -216,15 +215,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     keyboardType: TextInputType.emailAddress,
                     autoCapitalize: TextCapitalization.none,
                     icon: Icons.mail_outline,
-                    margin: const EdgeInsets.only(bottom: 16),
-                  ),
-
-                  CustomInput(
-                    placeholder: context.tr('phone'),
-                    value: _phone,
-                    onChangeText: (val) => setState(() => _phone = val),
-                    keyboardType: TextInputType.phone,
-                    icon: Icons.call_outlined,
                     margin: const EdgeInsets.only(bottom: 16),
                   ),
 

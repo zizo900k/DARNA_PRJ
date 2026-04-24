@@ -55,6 +55,15 @@ class ReviewController extends Controller
         $avgRating = Review::where('property_id', $property->id)->avg('rating');
         $property->update(['rating' => round($avgRating, 1)]);
 
+        $notification = \App\Models\Notification::create([
+            'user_id' => $property->user_id,
+            'type' => 'new_review',
+            'title' => 'New Review',
+            'body' => $request->user()->name . ' left a ' . $validated['rating'] . '-star review for ' . $property->title,
+            'data' => ['property_id' => $property->id, 'review_id' => $review->id],
+        ]);
+        broadcast(new \App\Events\NotificationCreated($notification));
+
         return response()->json([
             'message' => 'Review submitted successfully',
             'review'  => $review->load('user'),

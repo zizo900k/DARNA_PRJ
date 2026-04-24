@@ -25,4 +25,13 @@ class AgentController extends Controller
 
         return response()->json($query->paginate(15));
     }
+
+    public function show($id)
+    {
+        $user = User::with(['properties.photos'])->withCount('properties')->findOrFail($id);
+        return response()->json([
+            'agent' => $user,
+            'properties' => $user->properties,
+        ]);
+    }
 }

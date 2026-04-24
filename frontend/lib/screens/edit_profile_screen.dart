@@ -21,7 +21,6 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _phoneController;
   late TextEditingController _emailController;
   bool _googleLinked = true;
   bool _facebookLinked = false;
@@ -38,21 +37,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (user != null) {
         setState(() {
           _nameController.text = (user['full_name'] ?? user['name'] ?? '').toString();
-          _phoneController.text = (user['phone'] ?? '').toString();
           _emailController.text = (user['email'] ?? '').toString();
         });
       }
     });
     
     _nameController = TextEditingController();
-    _phoneController = TextEditingController();
     _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -98,7 +94,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final updates = {
         'full_name': _nameController.text,
         'name': _nameController.text,
-        'phone': _phoneController.text,
         'email': _emailController.text,
       };
       
@@ -286,16 +281,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             controller: _nameController,
                             placeholder: context.tr('full_name'),
                             icon: Icons.person_outline,
-                            theme: theme,
-                            isDark: isDark,
-                          ),
-                          const SizedBox(height: 16),
-
-                          _buildInputField(
-                            controller: _phoneController,
-                            placeholder: context.tr('phone'),
-                            icon: Icons.call_outlined,
-                            keyboardType: TextInputType.phone,
                             theme: theme,
                             isDark: isDark,
                           ),

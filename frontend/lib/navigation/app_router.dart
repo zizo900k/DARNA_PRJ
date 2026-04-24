@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../screens/welcome_screen.dart';
 import '../screens/sign_in_screen.dart';
 import '../screens/sign_up_screen.dart';
+import '../screens/forgot_password_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/favorites_screen.dart';
@@ -14,11 +15,13 @@ import '../screens/property_detail_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/add_listing_screen.dart';
 import '../screens/update_listing_screen.dart';
-import '../screens/home_guest_screen.dart';
-import '../screens/transactions_screen.dart';
 import '../screens/verify_email_screen.dart';
+import '../screens/home_guest_screen.dart';
 import '../screens/nearby_map_screen.dart';
+import '../screens/requests_screen.dart';
+import '../screens/agent_properties_screen.dart';
 import '../screens/top_locations_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../data/properties_data.dart';
 
 import 'scaffold_with_nav_bar.dart';
@@ -108,6 +111,12 @@ class AppRouter {
       GoRoute(
         path: '/login',
         redirect: (_, __) => '/signin',
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (BuildContext context, GoRouterState state) {
+          return const ForgotPasswordScreen();
+        },
       ),
       GoRoute(
         path: '/home_guest',
@@ -231,6 +240,32 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/requests',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          return const RequestsScreen();
+        },
+      ),
+      GoRoute(
+        path: '/notifications',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          return const NotificationsScreen();
+        },
+      ),
+      GoRoute(
+        path: '/agent/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return AgentPropertiesScreen(
+            agentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+            agentName: extra['name'] as String? ?? 'Agent',
+            agentAvatar: extra['avatar'] as String?,
+          );
+        },
+      ),
+      GoRoute(
         path: '/nearby-map',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (BuildContext context, GoRouterState state) {
@@ -261,13 +296,7 @@ class AppRouter {
           return UpdateListingScreen(propertyId: id, propertyData: propertyData);
         },
       ),
-      GoRoute(
-        path: '/transactions',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (BuildContext context, GoRouterState state) {
-          return const TransactionsScreen();
-        },
-      ),
+
       // Chat screen (no bottom nav)
       GoRoute(
         path: '/chat/:id',

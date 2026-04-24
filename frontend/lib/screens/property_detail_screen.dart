@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:math' show asin, atan2, cos, pi, sin, sqrt;
 import 'dart:ui';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -10,13 +12,16 @@ import '../theme/app_theme.dart';
 import '../theme/language_provider.dart';
 import '../theme/favorites_provider.dart';
 import '../services/property_service.dart';
-import '../services/transaction_service.dart';
+import '../services/request_service.dart';
 import '../theme/auth_provider.dart';
 import 'package:intl/intl.dart';
 import '../widgets/map/mapbox_widget.dart';
 import '../config/map_config.dart';
 import '../widgets/user_avatar.dart';
 import '../services/review_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class PropertyDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? property;
@@ -31,6 +36,10 @@ class PropertyDetailScreen extends StatefulWidget {
 class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   int _currentImageIndex = 0;
   late Map<String, dynamic> _property;
+  String? _userDistance;
+  String? _userDuration;
+  double? _userLat;
+  double? _userLng;
   bool _isLoading = true;
 
   @override
@@ -119,6 +128,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
           }
           _isLoading = false;
         });
+        _calculateDistance();
       }
     } catch (e) {
       if (mounted) {
@@ -127,6 +137,93 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _calculateDistance() async {
+    final propLat = double.tryParse(_property['latitude']?.toString() ?? '');
+    final propLng = double.tryParse(_property['longitude']?.toString() ?? '');
+    if (propLat == null || propLng == null) {
+      if (mounted) setState(() { _userDistance = 'Location not set'; _userDuration = ''; });
+      return;
+    }
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        if (mounted) setState(() { _userDistance = 'Enable location'; _userDuration = 'to see distance'; });
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _userLat = pos.latitude;
+      _userLng = pos.longitude;
+
+      // Use OSRM for exact road distance & duration
+      final osrmUrl = 'https://router.project-osrm.org/route/v1/driving/'
+          '${pos.longitude},${pos.latitude};$propLng,$propLat?overview=false';
+      final response = await http.get(Uri.parse(osrmUrl));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+          final route = data['routes'][0];
+          final distMeters = (route['distance'] as num).toDouble();
+          final durationSecs = (route['duration'] as num).toDouble();
+
+          final distKm = distMeters / 1000;
+          final mins = (durationSecs / 60).round();
+
+          if (mounted) {
+            setState(() {
+              _userDistance = distKm < 1
+                  ? '${distMeters.round()} m'
+                  : '${distKm.toStringAsFixed(1)} km';
+              _userDuration = mins < 60
+                  ? '$mins min drive'
+                  : '${(mins / 60).floor()}h ${mins % 60}min drive';
+            });
+          }
+          return;
+        }
+      }
+      // Fallback to Haversine if OSRM fails
+      final dist = _haversine(pos.latitude, pos.longitude, propLat, propLng);
+      final driveMins = (dist / 50 * 60).round();
+      if (mounted) {
+        setState(() {
+          _userDistance = dist < 1 ? '${(dist * 1000).round()} m' : '~${dist.toStringAsFixed(1)} km';
+          _userDuration = driveMins < 60 ? '~$driveMins min drive' : '~${(driveMins / 60).toStringAsFixed(1)} h drive';
+        });
+      }
+    } catch (e) {
+      debugPrint('Distance calc error: $e');
+      if (mounted) setState(() { _userDistance = 'Tap for directions'; _userDuration = ''; });
+    }
+  }
+
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLon = (lon2 - lon1) * pi / 180;
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
+    return r * 2 * atan2(sqrt(a), sqrt(1 - a));
+  }
+
+  Future<void> _openGoogleMapsDirections() async {
+    final propLat = double.tryParse(_property['latitude']?.toString() ?? '');
+    final propLng = double.tryParse(_property['longitude']?.toString() ?? '');
+    if (propLat == null || propLng == null) return;
+
+    String urlStr = 'https://www.google.com/maps/dir/?api=1&destination=$propLat,$propLng&travelmode=driving';
+    // Include user's current location as origin for full route
+    if (_userLat != null && _userLng != null) {
+      urlStr = 'https://www.google.com/maps/dir/?api=1&origin=$_userLat,$_userLng&destination=$propLat,$propLng&travelmode=driving';
+    }
+    final url = Uri.parse(urlStr);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -141,51 +238,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
   bool _isProcessingAction = false;
 
-  Future<void> _handleBuy() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (!authProvider.isLoggedIn) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.tr('require_login'))));
-      return;
-    }
-
-    // Prevent owner from buying their own property
-    if (_property['user_id'] != null &&
-        _property['user_id'] == authProvider.user?['id']) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.tr('cannot_buy_own'))));
-      return;
-    }
-
-    setState(() => _isProcessingAction = true);
-    try {
-      final res = await TransactionService.initiateSale(_property['id'] as int);
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: Text(context.tr('success')),
-            content:
-                Text(res['message']?.toString() ?? 'Purchase request sent.'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(context.tr('ok'))),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
-      }
-    } finally {
-      setState(() => _isProcessingAction = false);
-    }
-  }
-
-  Future<void> _handleRent() async {
+  Future<void> _handlePropertyRequest() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.isLoggedIn) {
       ScaffoldMessenger.of(context)
@@ -195,99 +248,158 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
     if (_property['user_id'] != null &&
         _property['user_id'] == authProvider.user?['id']) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.tr('cannot_rent_own'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('cannot_request_own') ?? 'You cannot request your own property.')));
       return;
     }
 
-    DateTime startDate = DateTime.now().add(const Duration(days: 1));
-    int months = 1;
+    final isRent = _property['type'] == 'rent';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    DateTime selectedDate = today.add(const Duration(days: 1));
+    TimeOfDay selectedTime = const TimeOfDay(hour: 10, minute: 0);
+    final messageController = TextEditingController();
+    String requestType = 'visit'; // Default
 
-    final accepted = await showDialog<bool>(
+    final submitted = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (stCtx, stSetState) {
-            return AlertDialog(
-              title: Text(context.tr('rent_property')),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: Text(context.tr('start_date')),
-                    subtitle: Text(DateFormat('yyyy-MM-dd').format(startDate)),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: ctx,
-                        initialDate: startDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (picked != null) {
-                        stSetState(() => startDate = picked);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Text(context.tr('months')),
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: months > 1
-                            ? () => stSetState(() => months--)
-                            : null,
-                      ),
-                      Text('$months',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () => stSetState(() => months++),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'End Date: ${DateFormat('yyyy-MM-dd').format(startDate.add(Duration(days: 30 * months)))}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 20,
               ),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(context.tr('cancel'))),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(context.tr('confirm'),
-                      style: const TextStyle(color: Colors.white)),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('request_visit') ?? 'Demander une visite',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: requestType,
+                      decoration: InputDecoration(
+                        labelText: context.tr('request_type') ?? 'Type de demande',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: [
+                        DropdownMenuItem(value: 'visit', child: Text(context.tr('visit') ?? 'Visite')),
+                        DropdownMenuItem(
+                          value: isRent ? 'rent_interest' : 'buy_interest',
+                          child: Text(isRent ? (context.tr('rent_interest') ?? 'Intéressé(e) pour louer') : (context.tr('buy_interest') ?? 'Intéressé(e) pour acheter')),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          stSetState(() => requestType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr('preferred_date') ?? 'Date souhaitée'),
+                      subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: today,
+                          lastDate: today.add(const Duration(days: 90)),
+                        );
+                        if (picked != null) {
+                          stSetState(() => selectedDate = picked);
+                        }
+                      },
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr('preferred_time') ?? 'Heure souhaitée'),
+                      subtitle: Text(selectedTime.format(context)),
+                      trailing: const Icon(Icons.access_time),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: selectedTime,
+                        );
+                        if (picked != null) {
+                          stSetState(() => selectedTime = picked);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: messageController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: context.tr('message_optional') ?? 'Message (optionnel)',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(
+                          context.tr('submit_request') ?? 'Envoyer la demande',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
       },
     );
 
-    if (accepted != true) return;
+    if (submitted != true) return;
 
     setState(() => _isProcessingAction = true);
     try {
-      final res = await TransactionService.initiateRent(
+      final res = await RequestService.createRequest(
         _property['id'] as int,
-        DateFormat('yyyy-MM-dd').format(startDate),
-        months,
+        {
+          'request_type': requestType,
+          'preferred_date': DateFormat('yyyy-MM-dd').format(selectedDate),
+          'preferred_time': '${selectedTime.hour}:${selectedTime.minute}',
+          'message': messageController.text.trim(),
+        },
       );
       if (mounted) {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Text(context.tr('success')),
-            content: Text(res['message']?.toString() ?? 'Rent request sent.'),
+            content: Text(res['message']?.toString() ?? 'Request sent successfully.'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
@@ -302,7 +414,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
             SnackBar(content: Text('${context.tr('error')} ${e.toString()}')));
       }
     } finally {
-      setState(() => _isProcessingAction = false);
+      if (mounted) {
+        setState(() => _isProcessingAction = false);
+      }
     }
   }
 
@@ -1119,39 +1233,43 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? DarkColors.backgroundSecondary
-                                : LightColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.share_location,
-                                  size: 18, color: AppColors.primary),
-                              const SizedBox(width: 12),
-                              Text(
-                                '${_property['distance'] ?? '0.0 km'} ',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: theme.textTheme.bodyLarge?.color,
+                        GestureDetector(
+                          onTap: () => _openGoogleMapsDirections(),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? DarkColors.backgroundSecondary
+                                  : LightColors.backgroundSecondary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.directions_car_outlined,
+                                    size: 18, color: AppColors.primary),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _userDistance ?? 'Calculating...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '${_property['duration'] ?? '0'} . drive',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: theme.textTheme.bodyMedium?.color,
+                                const SizedBox(width: 8),
+                                Text(
+                                  _userDuration ?? '',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.textTheme.bodyMedium?.color,
+                                  ),
                                 ),
-                              ),
-                              const Spacer(),
-                              Icon(Icons.chevron_right,
-                                  size: 18,
-                                  color: theme.textTheme.bodyMedium?.color),
-                            ],
+                                const Spacer(),
+                                Icon(Icons.open_in_new,
+                                    size: 16,
+                                    color: AppColors.primary),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -1720,11 +1838,6 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   Widget _buildBottomBar(ThemeData theme, bool isDark) {
     if (_property.isEmpty) return const SizedBox.shrink();
 
-    final isRent = _property['type'] == 'rent';
-    final priceLabel = isRent
-        ? 'MAD ${_property['price_per_month'] ?? _property['price'] ?? 0} / ${context.tr('month')}'
-        : 'MAD ${_property['price'] ?? 0}';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -1738,66 +1851,34 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
         ],
       ),
       child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('price'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.textTheme.bodyMedium?.color,
+        child: SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: _isProcessingAction ? null : _handlePropertyRequest,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: _isProcessingAction
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.white),
+                  )
+                : Text(
+                    context.tr('request_visit'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerStart,
-                    child: Text(
-                      priceLabel,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            ElevatedButton(
-              onPressed: _isProcessingAction
-                  ? null
-                  : (isRent ? _handleRent : _handleBuy),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _isProcessingAction
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(
-                      isRent ? context.tr('rent_now') : context.tr('buy'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
     );

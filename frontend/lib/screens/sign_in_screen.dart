@@ -282,7 +282,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               padding:
                                   EdgeInsets.only(bottom: screenHeight * 0.02),
                               child: TextButton(
-                                onPressed: _showComingSoon,
+                                onPressed: () => context.push('/forgot-password'),
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,

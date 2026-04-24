@@ -23,13 +23,13 @@ class WebSocketService {
   PusherChannelsClient? pusher;
   bool isInitialized = false;
   Map<String, PrivateChannel> subscriptions = {};
+  final Map<String, List<Function(dynamic)>> _listeners = {};
 
   String get _wsHost {
     if (kIsWeb) {
       final uri = Uri.parse(ApiService.baseUrl);
       return uri.host; 
     }
-    // For mobile (Android emulator/iOS sim), use the API host directly
     final uri = Uri.parse(ApiService.baseUrl);
     return uri.host;
   }
@@ -38,9 +38,15 @@ class WebSocketService {
     return '${ApiService.baseUrl}/broadcasting/auth';
   }
 
-  Future<void> init() async {
-    if (isInitialized) return;
+  Future<void>? _initFuture;
 
+  Future<void> init() {
+    if (isInitialized) return Future.value();
+    _initFuture ??= _doInit().whenComplete(() => _initFuture = null);
+    return _initFuture!;
+  }
+
+  Future<void> _doInit() async {
     try {
       final token = await ApiService.getToken();
       if (token == null) return; 
@@ -80,6 +86,15 @@ class WebSocketService {
     final token = await ApiService.getToken();
     if (token == null) return;
 
+    if (_listeners.containsKey(channelName)) {
+      if (!_listeners[channelName]!.contains(onEvent)) {
+        _listeners[channelName]!.add(onEvent);
+      }
+      return;
+    }
+    
+    _listeners[channelName] = [onEvent];
+
     try {
       final channel = pusher!.privateChannel(
         channelName,
@@ -96,11 +111,16 @@ class WebSocketService {
          final fakeEvent = PusherEvent(
            eventName: event.name,
            channelName: event.channelName,
-           // Reverb data payload might be decoded automatically or sent as string,
-           // dart_pusher_channels usually returns String if it's string payload or dynamic Map
            data: event.data is String ? event.data : jsonEncode(event.data),
          );
-         onEvent(fakeEvent);
+         final currentListeners = List<Function(dynamic)>.from(_listeners[channelName] ?? []);
+         for (var listener in currentListeners) {
+             try {
+               listener(fakeEvent);
+             } catch (e) {
+               debugPrint("Listener error on $channelName: $e");
+             }
+         }
       });
 
       channel.subscribe();
@@ -123,11 +143,20 @@ class WebSocketService {
     }
   }
 
-  Future<void> unsubscribe(String channelName) async {
+  Future<void> unsubscribe(String channelName, [Function(dynamic)? onEvent]) async {
     if (!isInitialized) return;
+    
+    if (onEvent != null && _listeners.containsKey(channelName)) {
+      _listeners[channelName]!.remove(onEvent);
+      if (_listeners[channelName]!.isNotEmpty) {
+        return; // Still have other listeners
+      }
+    }
+    
     try {
       subscriptions[channelName]?.unsubscribe();
       subscriptions.remove(channelName);
+      _listeners.remove(channelName);
       debugPrint("Unsubscribed from channel: $channelName");
     } catch (e) {
       debugPrint("Unsubscribe error on $channelName: $e");
@@ -139,7 +168,9 @@ class WebSocketService {
     try {
       pusher?.disconnect();
       isInitialized = false;
+      _initFuture = null;
       subscriptions.clear();
+      _listeners.clear();
       debugPrint("Pusher Disconnected");
     } catch (e) {
       debugPrint("Disconnect error: $e");

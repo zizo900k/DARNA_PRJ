@@ -6,6 +6,8 @@ import '../theme/theme_provider.dart';
 import '../theme/language_provider.dart';
 import '../providers/property_provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/notification_provider.dart';
+import '../theme/auth_provider.dart';
 import '../data/properties_data.dart';
 import '../widgets/category_pill.dart';
 import '../widgets/property_card.dart';
@@ -38,6 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
         // ignore: use_build_context_synchronously
         context.read<PropertyProvider>().loadHomeScreenData();
         context.read<ChatProvider>().fetchUnreadCount();
+        
+        final authProvider = context.read<AuthProvider>();
+        if (authProvider.isLoggedIn && authProvider.user != null) {
+          final userId = authProvider.user!['id'].toString();
+          context.read<NotificationProvider>().fetchNotifications();
+          context.read<NotificationProvider>().initWebSocket(userId);
+        }
+        
         _fetchTopLocations();
       });
     }
@@ -182,12 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Notification Icon
                           GestureDetector(
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(context.tr('coming_soon')),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
+                              context.push('/notifications');
                             },
                             child: Container(
                               width: 44,
@@ -204,19 +209,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Icon(Icons.notifications_outlined,
                                       size: 24,
                                       color: theme.textTheme.bodyLarge?.color),
-                                  Positioned(
-                                    top: 10,
-                                    right: 12,
-                                    child: Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.error,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: theme.cardColor, width: 2),
-                                      ),
-                                    ),
+                                  Consumer<NotificationProvider>(
+                                    builder: (context, notifProvider, child) {
+                                      if (notifProvider.unreadCount > 0) {
+                                        return Positioned(
+                                          top: 10,
+                                          right: 12,
+                                          child: Container(
+                                            width: 10,
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.error,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                  color: theme.cardColor, width: 2),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return const SizedBox.shrink();
+                                    },
                                   ),
                                 ],
                               ),

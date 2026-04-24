@@ -45,6 +45,15 @@ class NotificationController extends Controller
     }
 
     /**
+     * Get unread notifications count.
+     */
+    public function unreadCount(Request $request)
+    {
+        $count = $request->user()->notifications()->where('is_read', false)->count();
+        return response()->json(['count' => $count]);
+    }
+
+    /**
      * Delete a notification.
      */
     public function destroy(Request $request, Notification $notification)

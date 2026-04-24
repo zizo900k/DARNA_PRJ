@@ -37,6 +37,7 @@ class _FilterModalState extends State<FilterModal> {
   double _numberOfRooms = 4;
   List<String> _selectedPropertyTypes = ['apartment'];
   String _selectedPropertyStatus = 'all';
+  String _listingType = 'all';
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _FilterModalState extends State<FilterModal> {
       _numberOfRooms = widget.initialFilters!['numberOfRooms'] ?? 4;
       _selectedPropertyTypes = List<String>.from(widget.initialFilters!['propertyTypes'] ?? ['apartment']);
       _selectedPropertyStatus = widget.initialFilters!['propertyStatus'] ?? 'all';
+      _listingType = widget.initialFilters!['listingType'] ?? 'all';
     }
   }
 
@@ -62,8 +64,9 @@ class _FilterModalState extends State<FilterModal> {
 
   void _handleApply() {
     widget.onApply({
-      'cashInHand': _cashInHand,
-      'monthlyInstallment': _monthlyInstallment,
+      'listingType': _listingType,
+      'cashInHand': _listingType == 'sale' || _listingType == 'all' ? _cashInHand : null,
+      'monthlyInstallment': _listingType == 'rent' || _listingType == 'all' ? _monthlyInstallment : null,
       'numberOfRooms': _numberOfRooms,
       'propertyTypes': _selectedPropertyTypes,
       'propertyStatus': _selectedPropertyStatus,
@@ -78,6 +81,7 @@ class _FilterModalState extends State<FilterModal> {
       _numberOfRooms = 2;
       _selectedPropertyTypes = [];
       _selectedPropertyStatus = 'all';
+      _listingType = 'all';
     });
   }
 
@@ -114,60 +118,76 @@ class _FilterModalState extends State<FilterModal> {
                 ),
               ),
             ),
-            
-            // Cash in Hand
+            // Listing Type
             _buildSection(
-              title: context.tr('payment_cash'),
-              valueText: '${_cashInHand.toStringAsFixed(0)} ${context.tr('mad')}',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              title: context.tr('listing_type') ?? 'Listing type',
+              valueText: '',
+              child: Row(
                 children: [
-                  Slider(
-                    value: _cashInHand,
-                    min: 500000,
-                    max: 10000000,
-                    divisions: 95,
-                    activeColor: AppColors.primary,
-                    inactiveColor: isDark ? DarkColors.border : LightColors.border,
-                    onChanged: (val) => setState(() => _cashInHand = val),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      context.tr('down_payment_help'),
-                      style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
-                    ),
-                  ),
+                  _buildTypeOption('all', context.tr('all') ?? 'All', theme, isDark),
+                  const SizedBox(width: 12),
+                  _buildTypeOption('sale', context.tr('for_sale') ?? 'Sale', theme, isDark),
+                  const SizedBox(width: 12),
+                  _buildTypeOption('rent', context.tr('for_rent') ?? 'Rent', theme, isDark),
                 ],
               ),
             ),
 
-            // Monthly Installment
-            _buildSection(
-              title: context.tr('payment_monthly'),
-              valueText: '${_monthlyInstallment.toStringAsFixed(0)} ${context.tr('mad')}',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Slider(
-                    value: _monthlyInstallment,
-                    min: 500,
-                    max: 10000,
-                    divisions: 95,
-                    activeColor: AppColors.primary,
-                    inactiveColor: isDark ? DarkColors.border : LightColors.border,
-                    onChanged: (val) => setState(() => _monthlyInstallment = val),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      context.tr('monthly_budget_help'),
-                      style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+            // Cash in Hand (Only for Sale or All)
+            if (_listingType == 'sale' || _listingType == 'all')
+              _buildSection(
+                title: context.tr('payment_cash'),
+                valueText: '${_cashInHand.toStringAsFixed(0)} ${context.tr('mad')}',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Slider(
+                      value: _cashInHand,
+                      min: 500000,
+                      max: 10000000,
+                      divisions: 95,
+                      activeColor: AppColors.primary,
+                      inactiveColor: isDark ? DarkColors.border : LightColors.border,
+                      onChanged: (val) => setState(() => _cashInHand = val),
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        context.tr('down_payment_help'),
+                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+            // Monthly Installment / Rent (Only for Rent or All)
+            if (_listingType == 'rent' || _listingType == 'all')
+              _buildSection(
+                title: _listingType == 'rent' ? (context.tr('rent_price_label') ?? 'Rent Price') : context.tr('payment_monthly'),
+                valueText: '${_monthlyInstallment.toStringAsFixed(0)} ${context.tr('mad')}',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Slider(
+                      value: _monthlyInstallment,
+                      min: 500,
+                      max: 10000,
+                      divisions: 95,
+                      activeColor: AppColors.primary,
+                      inactiveColor: isDark ? DarkColors.border : LightColors.border,
+                      onChanged: (val) => setState(() => _monthlyInstallment = val),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        _listingType == 'rent' ? (context.tr('monthly_budget_help')) : context.tr('monthly_budget_help'),
+                        style: TextStyle(fontSize: 12, color: theme.textTheme.bodySmall?.color),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Number of Rooms
             _buildSection(
@@ -206,7 +226,7 @@ class _FilterModalState extends State<FilterModal> {
                         ),
                       ),
                       child: Text(
-                        type.name,
+                        context.tr(type.value) ?? type.name,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -316,6 +336,36 @@ class _FilterModalState extends State<FilterModal> {
           const SizedBox(height: 12),
           child,
         ],
+      ),
+    );
+  }
+
+  Widget _buildTypeOption(String value, String label, ThemeData theme, bool isDark) {
+    final isSelected = _listingType == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _listingType = value),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? AppColors.white : theme.textTheme.bodyMedium?.color,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
 import '../theme/language_provider.dart';
 import '../widgets/location_picker_map.dart';
+import '../data/properties_data.dart';
 
 class AddListingScreen extends StatefulWidget {
   const AddListingScreen({super.key});
@@ -26,7 +27,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
   // Form data
   String _title = 'House for sale';
   String _listingType = 'Sell';
-  String _category = 'House';
+  String _category = 'house';
+  int _categoryId = 4;
   String _location = 'Laayoune Hay El Wahda Bloc I';
   final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
@@ -35,18 +37,15 @@ class _AddListingScreenState extends State<AddListingScreen> {
   int _bedrooms = 3;
   int _bathrooms = 2;
   int _balcony = 2;
-  int _totalRooms = 4;
   int _kitchens = 1;
   int _toilets = 1;
   int _livingRooms = 1;
   final List<String> _facilities = ['Parking Lot'];
-  String _phoneNumber = '+212 | 624425449';
   double? _latitude;
   double? _longitude;
 
-  final List<String> _categories = ['House', 'Apartment'];
+  final List<PropertyType> _categories = PropertiesData.propertyTypes;
   final List<String> _facilityOptions = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
-  final List<int> _roomOptions = [4, 6];
 
   void _toggleFacility(String facility) {
     setState(() {
@@ -65,7 +64,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   }
 
   void _handleNext() {
-    if (_currentStep < 4) {
+    if (_currentStep < 5) {
       setState(() => _currentStep++);
     }
   }
@@ -95,7 +94,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
         'title': _title,
         'description': 'Beautiful $_category for $_listingType located in $_location.',
         'type': listingType,
-        'category_id': _category == 'Apartment' ? 1 : 4,
+        'category_id': _categoryId,
         'status': 'available',
         'location': _location,
         'price': listingType == 'sale' ? price : null,
@@ -107,9 +106,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
         'kitchens': _kitchens,
         'toilets': _toilets,
         'living_rooms': _livingRooms,
-        'total_rooms': _totalRooms,
+        'total_rooms': _bedrooms + _livingRooms + _kitchens,
         'facilities': _facilities,
-        'phone_number': _phoneNumber,
         if (_latitude != null) 'latitude': _latitude,
         if (_longitude != null) 'longitude': _longitude,
       });
@@ -239,6 +237,45 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   ),
                 ),
 
+                // Progress Bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: List.generate(5, (i) {
+                          final stepNum = i + 1;
+                          final isActive = stepNum <= _currentStep;
+                          return Expanded(
+                            child: Container(
+                              height: 4,
+                              margin: EdgeInsets.only(right: i < 4 ? 4 : 0),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? AppColors.primary
+                                    : (isDark ? DarkColors.border : LightColors.border),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Step $_currentStep of 5',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
                 // Steps Content
                 Expanded(
                   child: Padding(
@@ -279,7 +316,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: GestureDetector(
-                          onTap: _isSubmitting ? null : (_currentStep < 4 ? _handleNext : _handleFinish),
+                          onTap: _isSubmitting ? null : (_currentStep < 5 ? _handleNext : _handleFinish),
                           child: Container(
                             height: 56,
                             decoration: BoxDecoration(
@@ -297,7 +334,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                                     ),
                                   )
                                 : Text(
-                                    _currentStep < 4 ? 'Next' : 'Finish',
+                                    _currentStep < 5 ? 'Next' : 'Publish',
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
@@ -464,6 +501,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
         return _buildStep3(theme, isDark);
       case 4:
         return _buildStep4(theme, isDark);
+      case 5:
+        return _buildStep5Review(theme, isDark);
       default:
         return const SizedBox.shrink();
     }
@@ -601,10 +640,13 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: _categories.map((cat) {
-            final isActive = _category == cat;
+          children: _categories.map((catType) {
+            final isActive = _category == catType.value;
             return GestureDetector(
-              onTap: () => setState(() => _category = cat),
+              onTap: () => setState(() {
+                _category = catType.value;
+                _categoryId = catType.id;
+              }),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
@@ -614,7 +656,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Text(
-                  cat,
+                  context.tr(catType.value) ?? catType.name,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -923,117 +965,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
         _buildCounterRow('Living Room', _livingRooms, (val) => setState(() => _livingRooms = val), theme, isDark),
         const SizedBox(height: 28),
 
-        // Total Rooms
-        Text(
-          'Total Rooms',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: theme.textTheme.bodyLarge?.color,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            ..._roomOptions.map((room) {
-              final isActive = _totalRooms == room;
-              return GestureDetector(
-                onTap: () => setState(() => _totalRooms = room),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFF0D5C63)
-                        : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.bed_outlined,
-                        size: 16,
-                        color: isActive ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '< $room',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isActive ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            GestureDetector(
-              onTap: () => setState(() => _totalRooms = 6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: BoxDecoration(
-                  color: _totalRooms == 6
-                      ? const Color(0xFF0D5C63)
-                      : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bed_outlined,
-                      size: 16,
-                      color: _totalRooms == 6 ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '6',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _totalRooms == 6 ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-             GestureDetector(
-              onTap: () => setState(() => _totalRooms = 7),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: BoxDecoration(
-                  color: _totalRooms > 6
-                      ? const Color(0xFF0D5C63)
-                      : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bed_outlined,
-                      size: 16,
-                      color: _totalRooms > 6 ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '6+',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _totalRooms > 6 ? AppColors.white : theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-
         // Environment / Facilities
         Text(
           'Environment / Facilities',
@@ -1070,36 +1001,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
               ),
             );
           }).toList(),
-        ),
-        const SizedBox(height: 28),
-
-        // Phone Number
-        Text(
-          'Add Phone Number',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: theme.textTheme.bodyLarge?.color,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: TextField(
-            controller: TextEditingController(text: _phoneNumber)..selection = TextSelection.collapsed(offset: _phoneNumber.length),
-            onChanged: (val) => _phoneNumber = val,
-            keyboardType: TextInputType.phone,
-            style: TextStyle(fontSize: 16, color: theme.textTheme.bodyLarge?.color),
-            decoration: InputDecoration(
-              hintText: context.tr('phone_number_hint'),
-              hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              border: InputBorder.none,
-            ),
-          ),
         ),
         const SizedBox(height: 40),
       ],
@@ -1170,5 +1071,73 @@ class _AddListingScreenState extends State<AddListingScreen> {
       ),
     );
   }
-}
 
+  // Step 5: Review & Publish
+  Widget _buildStep5Review(ThemeData theme, bool isDark) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: 'Review ',
+                style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
+              ),
+              const TextSpan(text: 'your listing'),
+            ],
+          ),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: theme.textTheme.bodyLarge?.color,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Make sure everything looks good before publishing.',
+          style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
+        ),
+        const SizedBox(height: 24),
+        _reviewItem(Icons.title, 'Title', _title, theme, isDark),
+        _reviewItem(Icons.category_outlined, 'Type', '$_listingType · $_category', theme, isDark),
+        _reviewItem(Icons.location_on_outlined, 'Location', _location, theme, isDark),
+        _reviewItem(Icons.photo_library_outlined, 'Photos', '${_photos.length} photo(s)', theme, isDark),
+        _reviewItem(Icons.attach_money, 'Price', '$_price MAD${_listingType == "Rent" ? "/mo" : ""}', theme, isDark),
+        _reviewItem(Icons.crop_square_outlined, 'Area', '$_area m²', theme, isDark),
+        _reviewItem(Icons.bed_outlined, 'Rooms', '$_bedrooms bed · $_bathrooms bath · $_balcony balcony · $_kitchens kitchen', theme, isDark),
+        if (_facilities.isNotEmpty)
+          _reviewItem(Icons.local_parking_outlined, 'Facilities', _facilities.join(', '), theme, isDark),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _reviewItem(IconData icon, String label, String value, ThemeData theme, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12, color: theme.textTheme.bodyMedium?.color)),
+                const SizedBox(height: 2),
+                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: theme.textTheme.bodyLarge?.color)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

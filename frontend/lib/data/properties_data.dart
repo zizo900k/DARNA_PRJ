@@ -226,6 +226,11 @@ class PropertiesData {
   static const List<PropertyType> propertyTypes = [
     PropertyType(id: 1, name: 'Apartment', value: 'apartment'),
     PropertyType(id: 2, name: 'Villa', value: 'villa'),
+    PropertyType(id: 3, name: 'House', value: 'house'),
+    PropertyType(id: 4, name: 'Studio', value: 'studio'),
+    PropertyType(id: 5, name: 'Commercial', value: 'commercial'),
+    PropertyType(id: 7, name: 'Riad', value: 'riad'),
+    PropertyType(id: 8, name: 'Chalet', value: 'chalet'),
   ];
 
   static const List<PropertyStatus> propertyStatus = [

@@ -327,9 +327,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   child: Container(
                                     width: 32,
                                     height: 32,
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: Color(0xFF1ABC9C),
+                                      gradient: const LinearGradient(
+                                        colors: [AppColors.primary, AppColors.primaryDark],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                     ),
                                     alignment: Alignment.center,
                                     child: const Icon(Icons.edit,
@@ -661,17 +665,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.receipt_long, color: AppColors.primary),
+                                child: const Icon(Icons.calendar_today, color: AppColors.primary),
                               ),
                               title: Text(
-                                context.tr('my_transactions'),
+                                context.tr('my_requests') ?? 'My Requests',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: theme.textTheme.bodyLarge?.color,
                                 ),
                               ),
                               trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
-                              onTap: () => context.push('/transactions'),
+                              onTap: () => context.push('/requests'),
                             ),
                           ),
                           _buildListings(theme, isDark),
@@ -773,12 +777,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: isDark
-              ? DarkColors.backgroundSecondary
-              : LightColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: isDark ? DarkColors.border : LightColors.border),
+          color: isDark ? DarkColors.card : LightColors.card,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : const Color(0xFF0F172A).withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
