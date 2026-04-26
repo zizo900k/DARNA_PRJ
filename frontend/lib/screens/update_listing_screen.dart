@@ -103,11 +103,13 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
     
     // Parse photos based on backend structure
     _existingPhotos = [];
-    if (p['photos'] != null && p['photos'] is List) {
-      for (var photoObj in p['photos']) {
-        if (photoObj is Map && photoObj.containsKey('url')) {
-          _existingPhotos.add(photoObj['url'].toString());
-        }
+    final rawImages = (p['photos'] as List?) ?? (p['images'] as List?) ?? [];
+    for (var img in rawImages) {
+      if (img is String) {
+        _existingPhotos.add(img);
+      } else if (img is Map) {
+        final url = img['full_url'] ?? img['url'] ?? img['image'];
+        if (url != null) _existingPhotos.add(url.toString());
       }
     }
   }
@@ -166,6 +168,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
         'total_rooms': _totalRooms,
         'facilities': _facilities,
         'phone_number': _phoneNumber,
+        'existing_photos': _existingPhotos,
         if (_latitude != null) 'latitude': _latitude,
         if (_longitude != null) 'longitude': _longitude,
       });
@@ -306,12 +309,28 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
 
                       // Listing Type
                       _buildSectionTitle(context.tr('listing_type'), theme),
-                      Row(
-                        children: [
-                          _buildTypeButton(context.tr('for_rent'), _listingType == 'Rent', () => setState(() => _listingType = 'Rent'), theme, isDark),
-                          const SizedBox(width: 12),
-                          _buildTypeButton(context.tr('for_sale'), _listingType == 'Sell', () => setState(() => _listingType = 'Sell'), theme, isDark),
-                        ],
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline, size: 18, color: theme.textTheme.bodyMedium?.color),
+                            const SizedBox(width: 8),
+                            Text(
+                              _listingType == 'Rent' ? context.tr('for_rent') ?? 'For Rent' : context.tr('for_sale') ?? 'For Sale',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
 
@@ -608,6 +627,8 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                         runSpacing: 10,
                         children: _facilityOptions.map((facility) {
                           final isActive = _facilities.contains(facility);
+                          final key = facility.toLowerCase().replaceAll(' ', '_');
+                          final translated = context.tr(key);
                           return GestureDetector(
                             onTap: () => _toggleFacility(facility),
                             child: Container(
@@ -619,9 +640,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                context.tr(facility.toLowerCase().replaceAll(' ', '_')).isNotEmpty
-                                    ? context.tr(facility.toLowerCase().replaceAll(' ', '_'))
-                                    : facility,
+                                translated != key ? translated : facility,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -665,7 +684,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                                   ),
                                 )
                               : Text(
-                                  context.tr('update'),
+                                  context.tr('update_listing'),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,

@@ -14,6 +14,7 @@ import '../widgets/property_card.dart';
 import '../widgets/rental_property_card.dart';
 import '../widgets/filter_modal.dart';
 import '../services/property_service.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -171,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Container(
                               width: 44,
                               height: 44,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? DarkColors.backgroundSecondary
@@ -192,45 +194,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Notification Icon
                           GestureDetector(
                             onTap: () {
-                              context.push('/notifications');
+                              NotificationsScreen.show(context);
                             },
                             child: Container(
                               width: 44,
                               height: 44,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? DarkColors.backgroundSecondary
                                     : LightColors.backgroundSecondary,
                                 shape: BoxShape.circle,
                               ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Icon(Icons.notifications_outlined,
-                                      size: 24,
-                                      color: theme.textTheme.bodyLarge?.color),
-                                  Consumer<NotificationProvider>(
-                                    builder: (context, notifProvider, child) {
-                                      if (notifProvider.unreadCount > 0) {
-                                        return Positioned(
-                                          top: 10,
-                                          right: 12,
-                                          child: Container(
-                                            width: 10,
-                                            height: 10,
-                                            decoration: BoxDecoration(
-                                              color: AppColors.error,
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                  color: theme.cardColor, width: 2),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    },
-                                  ),
-                                ],
+                              child: Consumer<NotificationProvider>(
+                                builder: (context, notifProvider, child) {
+                                  return Badge(
+                                    isLabelVisible: notifProvider.unreadCount > 0,
+                                    label: Text(
+                                      notifProvider.unreadCount > 9 ? '9+' : '${notifProvider.unreadCount}',
+                                      style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                    backgroundColor: AppColors.error,
+                                    child: Icon(Icons.notifications_outlined,
+                                        size: 24,
+                                        color: theme.textTheme.bodyLarge?.color),
+                                  );
+                                },
                               ),
                             ),
                           ),

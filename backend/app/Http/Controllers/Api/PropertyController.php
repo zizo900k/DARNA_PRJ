@@ -196,9 +196,20 @@ class PropertyController extends Controller
             'toilets'        => 'nullable|integer|min:0',
             'living_rooms'   => 'nullable|integer|min:0',
             'total_rooms'    => 'nullable|integer|min:0',
+            'existing_photos'=> 'nullable|array',
+            'existing_photos.*'=> 'string',
         ]);
 
         $property->update($validated);
+
+        if ($request->has('existing_photos')) {
+            $existing = collect($request->existing_photos);
+            foreach ($property->photos as $photo) {
+                if (!$existing->contains($photo->full_url) && !$existing->contains($photo->url)) {
+                    $photo->delete();
+                }
+            }
+        }
 
         return response()->json([
             'message'  => 'Property updated successfully',

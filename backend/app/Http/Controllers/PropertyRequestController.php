@@ -20,6 +20,17 @@ class PropertyRequestController extends Controller
 
         $property = Property::findOrFail($property_id);
 
+        $existingRequest = PropertyRequest::where('property_id', $property->id)
+            ->where('sender_id', auth()->id())
+            ->whereIn('status', ['pending', 'accepted'])
+            ->first();
+
+        if ($existingRequest) {
+            return response()->json([
+                'message' => 'You already have an active request for this property.'
+            ], 422);
+        }
+
         $propRequest = PropertyRequest::create([
             'property_id' => $property->id,
             'sender_id' => auth()->id(),

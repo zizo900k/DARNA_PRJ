@@ -179,7 +179,15 @@ class ChatController extends Controller
             'type' => 'new_message',
             'title' => 'New message from ' . $request->user()->name,
             'body' => \Illuminate\Support\Str::limit($request->message, 50),
-            'data' => ['conversation_id' => $conversation->id],
+            'data' => [
+                'conversation_id' => $conversation->id,
+                'sender' => [
+                    'id' => $userId,
+                    'name' => $request->user()->name,
+                    'avatar' => $request->user()->avatar,
+                    'full_avatar_url' => $request->user()->full_avatar_url,
+                ]
+            ],
         ]);
         broadcast(new \App\Events\NotificationCreated($notification));
 
@@ -296,7 +304,15 @@ class ChatController extends Controller
                 'type' => 'new_voice_message',
                 'title' => 'New voice message from ' . $request->user()->name,
                 'body' => '🎤 Voice message',
-                'data' => ['conversation_id' => $conversation->id],
+                'data' => [
+                    'conversation_id' => $conversation->id,
+                    'sender' => [
+                        'id' => $userId,
+                        'name' => $request->user()->name,
+                        'avatar' => $request->user()->avatar,
+                        'full_avatar_url' => $request->user()->full_avatar_url,
+                    ]
+                ],
             ]);
             broadcast(new \App\Events\NotificationCreated($notification));
 
@@ -483,7 +499,15 @@ class ChatController extends Controller
                     'type' => 'missed_call',
                     'title' => 'Missed call',
                     'body' => 'You missed a call from ' . $user->name,
-                    'data' => ['conversation_id' => $conversation->id],
+                    'data' => [
+                        'conversation_id' => $conversation->id,
+                        'sender' => [
+                            'id' => $userId,
+                            'name' => $user->name,
+                            'avatar' => $user->avatar,
+                            'full_avatar_url' => $user->full_avatar_url,
+                        ]
+                    ],
                 ]);
                 broadcast(new \App\Events\NotificationCreated($notification));
             }

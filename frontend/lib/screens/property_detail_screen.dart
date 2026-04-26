@@ -716,6 +716,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final favProvider = context.watch<FavoritesProvider>();
     final isFavorite = favProvider.isFavorite(_property['id'] as int);
+    final authProvider = context.watch<AuthProvider>();
+    final ownerId = _property['user_id'] ?? _property['user']?['id'];
+    final isOwner = authProvider.isLoggedIn && ownerId != null && ownerId == authProvider.user?['id'];
 
     final rawImages =
         (_property['photos'] as List?) ?? (_property['images'] as List?) ?? [];
@@ -752,7 +755,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      bottomNavigationBar: _buildBottomBar(theme, isDark),
+      bottomNavigationBar: isOwner ? const SizedBox.shrink() : _buildBottomBar(theme, isDark),
       body: CustomScrollView(
         slivers: [
           // Image Header
@@ -1077,37 +1080,39 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          GestureDetector(
-                            onTap: _openChat,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    AppColors.primary,
-                                    Color(0xFF16A085)
+                          if (!isOwner) ...[
+                            const SizedBox(width: 16),
+                            GestureDetector(
+                              onTap: _openChat,
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      AppColors.primary,
+                                      Color(0xFF16A085)
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
                                   ],
                                 ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.chat_bubble_outline,
-                                color: Colors.white,
-                                size: 22,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.chat_bubble_outline,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -1470,8 +1475,9 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   color: theme.textTheme.bodyLarge?.color,
                                 ),
                               ),
-                              Builder(builder: (context) {
-                                final auth = context.watch<AuthProvider>();
+                              if (!isOwner)
+                                Builder(builder: (context) {
+                                  final auth = context.watch<AuthProvider>();
                                 // Find if current user already reviewed
                                 final existingReview = auth.isLoggedIn &&
                                         reviews.isNotEmpty
