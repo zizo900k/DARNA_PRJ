@@ -22,6 +22,7 @@ import '../screens/requests_screen.dart';
 import '../screens/agent_properties_screen.dart';
 import '../screens/top_locations_screen.dart';
 import '../screens/notifications_screen.dart';
+import '../screens/admin_shell_screen.dart';
 import '../data/properties_data.dart';
 
 import 'scaffold_with_nav_bar.dart';
@@ -271,6 +272,13 @@ class AppRouter {
         builder: (BuildContext context, GoRouterState state) {
           final property = state.extra as Map<String, dynamic>;
           return NearbyMapScreen(property: property);
+        },
+      ),
+      GoRoute(
+        path: '/admin/shell',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (BuildContext context, GoRouterState state) {
+          return const AdminShellScreen();
         },
       ),
       GoRoute(

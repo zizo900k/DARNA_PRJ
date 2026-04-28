@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Property;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 
 class PropertyController extends Controller
@@ -13,7 +15,7 @@ class PropertyController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Property::with(['user', 'category', 'photos']);
+        $query = Property::with(['user', 'category', 'photos'])->where('status', 'published');
 
         if ($request->has('type')) {
             $query->where('type', $request->type);
@@ -71,10 +73,6 @@ class PropertyController extends Controller
             $query->where('bedrooms', '>=', $request->numberOfRooms);
         }
 
-        if ($request->has('propertyStatus') && $request->propertyStatus !== 'all') {
-            $query->where('status', $request->propertyStatus);
-        }
-
         // Sort
         if ($request->has('random')) {
             $query->inRandomOrder();
@@ -121,7 +119,6 @@ class PropertyController extends Controller
             'facilities'     => 'nullable|array',
             'category_id'    => 'required|exists:categories,id',
             'type'           => 'required|in:rent,sale',
-            'status'         => 'nullable|string',
             'phone_number'   => 'nullable|string|max:20',
             'bedrooms'       => 'nullable|integer|min:0',
             'bathrooms'      => 'nullable|integer|min:0',
@@ -146,7 +143,21 @@ class PropertyController extends Controller
             ], 422);
         }
 
+        $validated['status'] = 'pending'; // Enforce pending status
+
         $property = $request->user()->properties()->create($validated);
+
+        // Notify admins
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'publish_request',
+                'title' => 'New Property Review Request',
+                'body' => "A new property '{$property->title}' has been submitted for review by {$request->user()->name}.",
+                'data' => ['property_id' => $property->id],
+            ]);
+        }
 
         return response()->json([
             'message'  => 'Property created successfully',
@@ -159,6 +170,8 @@ class PropertyController extends Controller
      */
     public function show(Property $property)
     {
+        // Optional: you can block viewing if it's not published and user is not owner/admin
+        // But for public show it's fine
         return response()->json(
             $property->load(['user', 'category', 'photos', 'reviews.user'])
         );
@@ -187,7 +200,6 @@ class PropertyController extends Controller
             'facilities'     => 'nullable|array',
             'category_id'    => 'sometimes|exists:categories,id',
             'type'           => 'sometimes|in:rent,sale',
-            'status'         => 'nullable|string',
             'phone_number'   => 'nullable|string|max:20',
             'bedrooms'       => 'nullable|integer|min:0',
             'bathrooms'      => 'nullable|integer|min:0',
@@ -199,6 +211,10 @@ class PropertyController extends Controller
             'existing_photos'=> 'nullable|array',
             'existing_photos.*'=> 'string',
         ]);
+
+        // Require re-moderation on update
+        $validated['status'] = 'pending'; 
+        $validated['rejection_reason'] = null;
 
         $property->update($validated);
 
@@ -212,7 +228,7 @@ class PropertyController extends Controller
         }
 
         return response()->json([
-            'message'  => 'Property updated successfully',
+            'message'  => 'Property updated successfully and is pending review',
             'property' => $property->load(['user', 'category', 'photos']),
         ]);
     }
@@ -231,6 +247,7 @@ class PropertyController extends Controller
 
         return response()->json(['message' => 'Property deleted successfully']);
     }
+
     public function nearby(Request $request, $id)
     {
         $property = Property::findOrFail($id);
@@ -244,6 +261,7 @@ class PropertyController extends Controller
 
             $nearby = Property::with(['user', 'category', 'photos'])
                 ->where('id', '!=', $id)
+                ->where('status', 'published')
                 ->whereNotNull('latitude')
                 ->whereNotNull('longitude')
                 ->selectRaw("*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance", [$lat, $lng, $lat])
@@ -255,6 +273,7 @@ class PropertyController extends Controller
             // Fallback: match by location string
             $nearby = Property::with(['user', 'category', 'photos'])
                 ->where('id', '!=', $id)
+                ->where('status', 'published')
                 ->where('location', $property->location)
                 ->limit($limit)
                 ->get();

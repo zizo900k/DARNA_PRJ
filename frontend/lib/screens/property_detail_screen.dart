@@ -719,6 +719,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final authProvider = context.watch<AuthProvider>();
     final ownerId = _property['user_id'] ?? _property['user']?['id'];
     final isOwner = authProvider.isLoggedIn && ownerId != null && ownerId == authProvider.user?['id'];
+    final isAdmin = authProvider.isLoggedIn && authProvider.user?['role'] == 'admin';
 
     final rawImages =
         (_property['photos'] as List?) ?? (_property['images'] as List?) ?? [];
@@ -755,7 +756,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      bottomNavigationBar: isOwner ? const SizedBox.shrink() : _buildBottomBar(theme, isDark),
+      bottomNavigationBar: (isOwner || isAdmin) ? const SizedBox.shrink() : _buildBottomBar(theme, isDark),
       body: CustomScrollView(
         slivers: [
           // Image Header
@@ -768,7 +769,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
               icon: Icons.arrow_back,
               onTap: () => context.pop(),
             ),
-            actions: [
+            actions: isAdmin ? [] : [
               _buildAppBarButton(
                 context: context,
                 icon: Icons.share_outlined,
@@ -1080,7 +1081,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                               ],
                             ),
                           ),
-                          if (!isOwner) ...[
+                          if (!isOwner && !isAdmin) ...[
                             const SizedBox(width: 16),
                             GestureDetector(
                               onTap: _openChat,

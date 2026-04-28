@@ -10,7 +10,7 @@ class Property extends Model
         'title', 'description', 'price', 'price_per_month', 'area',
         'location', 'latitude', 'longitude', 'featured', 'facilities', 'type', 'status',
         'phone_number', 'user_id', 'category_id', 'bedrooms', 'bathrooms', 'rating',
-        'balcony', 'kitchens', 'toilets', 'living_rooms', 'total_rooms'
+        'balcony', 'kitchens', 'toilets', 'living_rooms', 'total_rooms', 'rejection_reason'
     ];
 
     protected $casts = [

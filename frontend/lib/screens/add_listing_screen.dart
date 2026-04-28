@@ -25,22 +25,22 @@ class _AddListingScreenState extends State<AddListingScreen> {
   String? _submissionError;
 
   // Form data
-  String _title = 'House for sale';
+  String _title = '';
   String _listingType = 'Sell';
-  String _category = 'house';
-  int _categoryId = 4;
-  String _location = 'Laayoune Hay El Wahda Bloc I';
+  String _category = '';
+  int _categoryId = 0;
+  String _location = '';
   final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
-  String _price = '4,000,000';
-  String _area = '120';
-  int _bedrooms = 3;
-  int _bathrooms = 2;
-  int _balcony = 2;
+  String _price = '';
+  String _area = '';
+  int _bedrooms = 1;
+  int _bathrooms = 1;
+  int _balcony = 0;
   int _kitchens = 1;
   int _toilets = 1;
   int _livingRooms = 1;
-  final List<String> _facilities = ['Parking Lot'];
+  final List<String> _facilities = [];
   double? _latitude;
   double? _longitude;
 
@@ -64,6 +64,48 @@ class _AddListingScreenState extends State<AddListingScreen> {
   }
 
   void _handleNext() {
+    setState(() {
+      _submissionError = null;
+    });
+
+    if (_currentStep == 1) {
+      if (_title.trim().isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please enter a listing title');
+        return;
+      }
+      if (_category.isEmpty || _categoryId == 0) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please select a property category');
+        return;
+      }
+    } else if (_currentStep == 2) {
+      if (_location.trim().isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please enter a location');
+        return;
+      }
+      if (_latitude == null || _longitude == null) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please select a location on the map');
+        return;
+      }
+    } else if (_currentStep == 3) {
+      if (_photos.isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please add at least one photo');
+        return;
+      }
+    } else if (_currentStep == 4) {
+      if (_price.trim().isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please enter a price');
+        return;
+      }
+      if (_area.trim().isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please enter the area');
+        return;
+      }
+      if (_facilities.isEmpty) {
+        setState(() => _submissionError = context.tr('fill_required_fields') ?? 'Please select at least one facility');
+        return;
+      }
+    }
+
     if (_currentStep < 5) {
       setState(() => _currentStep++);
     }
@@ -95,7 +137,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
         'description': 'Beautiful $_category for $_listingType located in $_location.',
         'type': listingType,
         'category_id': _categoryId,
-        'status': 'available',
         'location': _location,
         'price': listingType == 'sale' ? price : null,
         'price_per_month': listingType == 'rent' ? price : null,
@@ -334,7 +375,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                                     ),
                                   )
                                 : Text(
-                                    _currentStep < 5 ? 'Next' : 'Publish',
+                                    _currentStep < 5 ? 'Next' : 'Submit for Review',
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
@@ -404,33 +445,24 @@ class _AddListingScreenState extends State<AddListingScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(text: context.tr('listing_now_published_1')),
-                            TextSpan(
-                              text: context.tr('listing_now_published_2'),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? const Color(0xFF1ABC9C) : const Color(0xFF0D5C63),
-                              ),
-                            ),
-                          ],
-                        ),
+                      Text(
+                        'Your listing has been\nsubmitted for review',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,
+                          fontWeight: FontWeight.w700,
                           color: theme.textTheme.bodyLarge?.color,
                           height: 1.3,
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        context.tr('listing_success_desc'),
+                        'Our team will review your property and publish it shortly. You can track its status in My Listings.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
                           color: theme.textTheme.bodyMedium?.color,
+                          height: 1.5,
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -569,8 +601,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 onTap: () {
                   setState(() {
                     _listingType = 'Rent';
-                    if (_title == 'House for sale') _title = 'House for rent';
-                    if (_price == '4,000,000') _price = '4,000';
                   });
                 },
                 child: Container(
@@ -599,8 +629,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 onTap: () {
                   setState(() {
                     _listingType = 'Sell';
-                    if (_title == 'House for rent') _title = 'House for sale';
-                    if (_price == '4,000') _price = '4,000,000';
                   });
                 },
                 child: Container(

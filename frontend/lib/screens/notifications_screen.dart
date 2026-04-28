@@ -61,6 +61,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'request_accepted':
       case 'request_rejected':
+      case 'property_approved':
+      case 'property_rejected':
+      case 'publish_request':
         if (data['property_id'] != null) {
           context.push('/property/${data['property_id']}');
         } else {
@@ -86,9 +89,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'new_request':
         return Icons.calendar_month_rounded;
       case 'request_accepted':
+      case 'property_approved':
         return Icons.check_circle_rounded;
       case 'request_rejected':
+      case 'property_rejected':
         return Icons.cancel_rounded;
+      case 'publish_request':
+        return Icons.publish_rounded;
       case 'new_review':
         return Icons.star_rounded;
       default:
@@ -106,9 +113,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'new_request':
         return const Color(0xFFF59E0B); // Amber
       case 'request_accepted':
+      case 'property_approved':
         return const Color(0xFF10B981); // Green
       case 'request_rejected':
+      case 'property_rejected':
         return const Color(0xFFEF4444); // Red
+      case 'publish_request':
+        return const Color(0xFF3B82F6); // Blue
       case 'new_review':
         return const Color(0xFFF59E0B); // Amber
       default:
@@ -185,33 +196,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(28),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
+                                color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
                                 shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
                               ),
                               child: Icon(
-                                Icons.notifications_none_rounded,
-                                size: 64,
-                                color: AppColors.primary.withValues(alpha: 0.8),
+                                Icons.notifications_off_rounded,
+                                size: 72,
+                                color: AppColors.primary.withValues(alpha: 0.6),
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 32),
                             Text(
-                              context.tr('no_notifications') ?? 'No notifications yet',
+                              context.tr('no_notifications') == 'no_notifications' ? 'No notifications yet' : context.tr('no_notifications'),
                               style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
                                 color: theme.textTheme.bodyLarge?.color,
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'When you get notifications, they\'ll show up here',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
+                              child: Text(
+                                context.tr('no_notifications_desc') == 'no_notifications_desc' ? 'When you get notifications, they\'ll show up here' : context.tr('no_notifications_desc'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  height: 1.5,
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                                ),
                               ),
                             ),
                           ],

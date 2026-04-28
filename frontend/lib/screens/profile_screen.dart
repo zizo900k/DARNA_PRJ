@@ -62,6 +62,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'published':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'pending':
+      default:
+        return Colors.orange;
+    }
+  }
+
 /*
   Widget _buildTransactions(ThemeData theme, bool isDark) {
     return Padding(
@@ -344,19 +356,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Positioned(
                                 top: 12,
                                 right: 12,
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      _showComingSoon('Add to Favorites'),
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xFF1ABC9C),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(listing['status'] as String?),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    (listing['status'] as String? ?? 'pending').toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
-                                    alignment: Alignment.center,
-                                    child: const Icon(Icons.favorite_border,
-                                        size: 18, color: Colors.white),
                                   ),
                                 ),
                               ),
@@ -440,6 +452,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                   ],
                                 ),
+                                if (listing['status'] == 'rejected' && listing['rejection_reason'] != null) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(Icons.info_outline, color: Colors.red, size: 14),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            listing['rejection_reason'] as String,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.red,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -654,6 +694,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     else 
                       Column(
                         children: [
+                          if (user?['role'] == 'admin')
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
+                                ),
+                                title: Text(
+                                  'Admin Dashboard',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
+                                onTap: () => context.push('/admin/dashboard'),
+                              ),
+                            ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             child: ListTile(

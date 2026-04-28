@@ -28,7 +28,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (!authProvider.isLoading && authProvider.isLoggedIn) {
       _hasRedirected = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.go('/home');
+        if (mounted) {
+          if (authProvider.user?['role'] == 'admin') {
+            context.go('/admin/shell');
+          } else {
+            context.go('/home');
+          }
+        }
       });
     }
   }

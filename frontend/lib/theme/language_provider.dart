@@ -74,6 +74,8 @@ class LanguageProvider with ChangeNotifier {
       'properties': 'Properties',
       'agents': 'Agents',
       'listings_suffix': 'listings',
+      'no_notifications': 'No notifications yet',
+      'no_notifications_desc': 'When you get notifications, they\'ll show up here',
       // Navigation
       'nav_home': 'Home',
       'nav_search': 'Search',
@@ -338,6 +340,8 @@ class LanguageProvider with ChangeNotifier {
       'properties': 'Propriétés',
       'agents': 'Agents',
       'listings_suffix': 'annonces',
+      'no_notifications': 'Aucune notification',
+      'no_notifications_desc': 'Lorsque vous recevrez des notifications, elles apparaîtront ici',
       // Navigation
       'nav_home': 'Accueil',
       'nav_search': 'Recherche',
@@ -602,6 +606,8 @@ class LanguageProvider with ChangeNotifier {
       'properties': 'عقارات',
       'agents': 'وكلاء',
       'listings_suffix': 'عقار',
+      'no_notifications': 'لا توجد إشعارات',
+      'no_notifications_desc': 'عندما تتلقى إشعارات، ستظهر هنا',
       // Navigation
       'nav_home': 'الرئيسية',
       'nav_search': 'بحث',

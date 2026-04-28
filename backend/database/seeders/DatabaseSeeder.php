@@ -14,12 +14,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create Admin user
+        User::firstOrCreate(
+            ['email' => 'admindarna@gmail.com'],
+            [
+                'name' => 'DARNA Admin',
+                'password' => bcrypt('darna2005'),
+                'role' => 'admin'
+            ]
+        );
+
         // Find a fallback user, or create one if db is empty
-        $user = User::first() ?? User::create([
-            'name' => 'Test Admin',
-            'email' => 'admin@darna.com',
-            'password' => bcrypt('password'),
-        ]);
+        $user = User::firstOrCreate(
+            ['email' => 'admin@darna.com'],
+            [
+                'name' => 'Test User',
+                'password' => bcrypt('password'),
+                'role' => 'user'
+            ]
+        );
 
         // Create Categories
         $catAppartement = Category::firstOrCreate(['name' => 'Appartement']);
@@ -40,7 +53,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catAppartement->id,
             'user_id' => $user->id,
             'type' => 'rent',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 2,
             'bathrooms' => 1,
@@ -59,7 +72,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catVilla->id,
             'user_id' => $user->id,
             'type' => 'sale',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 5,
             'bathrooms' => 3,
@@ -78,7 +91,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catStudio->id,
             'user_id' => $user->id,
             'type' => 'rent',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 1,
             'bathrooms' => 1,
@@ -97,15 +110,16 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catMaison->id,
             'user_id' => $user->id,
             'type' => 'sale',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 4,
             'bathrooms' => 2,
             'rating' => 4.5
         ]);
+        
         $user2 = User::firstOrCreate(
             ['email' => 'owner2@darna.com'],
-            ['name' => 'John Seller', 'password' => bcrypt('123456')]
+            ['name' => 'John Seller', 'password' => bcrypt('123456'), 'role' => 'user']
         );
 
         Property::create([
@@ -120,7 +134,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catMaison->id,
             'user_id' => $user2->id,
             'type' => 'sale',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 4,
             'bathrooms' => 2,
@@ -139,7 +153,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catStudio->id,
             'user_id' => $user2->id,
             'type' => 'rent',
-            'status' => 'available',
+            'status' => 'published',
             'phone_number' => '0624425449',
             'bedrooms' => 1,
             'bathrooms' => 1,

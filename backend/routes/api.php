@@ -102,6 +102,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/properties/{id}/requests',                [PropertyRequestController::class, 'store']);
     Route::put('/requests/{id}/status',                     [PropertyRequestController::class, 'updateStatus']);
 
+    // Admin Property Moderation
+    Route::get('/admin/properties', [App\Http\Controllers\Api\AdminPropertyController::class, 'index']);
+    Route::get('/admin/properties/stats', [App\Http\Controllers\Api\AdminPropertyController::class, 'stats']);
+    Route::get('/admin/properties/{id}', [App\Http\Controllers\Api\AdminPropertyController::class, 'show']);
+    Route::put('/admin/properties/{id}/approve', [App\Http\Controllers\Api\AdminPropertyController::class, 'approve']);
+    Route::put('/admin/properties/{id}/reject', [App\Http\Controllers\Api\AdminPropertyController::class, 'reject']);
+
     // Admin-only: Category management
     Route::post('/categories',              [CategoryController::class, 'store']);
     Route::put('/categories/{category}',    [CategoryController::class, 'update']);

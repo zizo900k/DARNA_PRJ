@@ -55,7 +55,13 @@ class _SignInScreenState extends State<SignInScreen> {
       final response = await ApiService.post('/auth/google', body: {'id_token': idToken}, requiresAuth: false);
       if (!mounted) return;
       await context.read<AuthProvider>().handleGoogleSignInResponse(response);
-      if (mounted) context.go('/home');
+      if (mounted) {
+        if (context.read<AuthProvider>().user?['role'] == 'admin') {
+          context.go('/admin/shell');
+        } else {
+          context.go('/home');
+        }
+      }
     }
   }
 
@@ -71,7 +77,11 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await context.read<AuthProvider>().login(_email, _password);
       if (mounted) {
-        context.go('/home');
+        if (context.read<AuthProvider>().user?['role'] == 'admin') {
+          context.go('/admin/shell');
+        } else {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -97,7 +107,11 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       await context.read<AuthProvider>().signInWithGoogle();
       if (mounted) {
-        context.go('/home');
+        if (context.read<AuthProvider>().user?['role'] == 'admin') {
+          context.go('/admin/shell');
+        } else {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {
