@@ -63,12 +63,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'request_rejected':
       case 'property_approved':
       case 'property_rejected':
-      case 'publish_request':
         if (data['property_id'] != null) {
           context.push('/property/${data['property_id']}');
         } else {
           context.push('/requests');
         }
+        break;
+      case 'publish_request':
+        context.push('/admin/shell');
         break;
       case 'new_review':
         if (data['property_id'] != null) {

@@ -716,7 +716,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                                 trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
-                                onTap: () => context.push('/admin/dashboard'),
+                                onTap: () => context.push('/admin/shell'),
                               ),
                             ),
                           Padding(
