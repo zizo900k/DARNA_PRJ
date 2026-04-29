@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../theme/language_provider.dart';
 import '../services/admin_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/notification_provider.dart';
@@ -17,7 +19,7 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   Map<String, dynamic> _stats = {'pending': 0, 'published': 0, 'rejected': 0};
   List<Map<String, dynamic>> _properties = [];
@@ -26,10 +28,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   String _currentFilter = 'pending';
   int _currentPage = 1;
   int _lastPage = 1;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -50,10 +54,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         context.read<NotificationProvider>().initWebSocket(userId);
       }
     });
+
+    _startPolling();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+      _pollData(); // Instant fetch when coming back
+    } else if (state == AppLifecycleState.paused) {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    _stopPolling(); // Ensure no duplicates
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _pollData();
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
     _tabController.dispose();
     super.dispose();
   }
@@ -76,6 +106,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // Silent background fetch to not disrupt the UI while polling
+  Future<void> _pollData() async {
+    if (!mounted || _currentPage > 1) return; // Only poll when on first page
+    
+    try {
+      final results = await Future.wait([
+        AdminService.getStats(),
+        AdminService.getProperties(status: _currentFilter, page: 1),
+      ]);
+      if (mounted) {
+        setState(() {
+          _stats = results[0];
+          final propData = results[1];
+          _properties = List<Map<String, dynamic>>.from(propData['data'] ?? []);
+          _lastPage = propData['last_page'] ?? 1;
+        });
+      }
+    } catch (e) {
+      // Silently fail on polling errors
+      debugPrint("Polling error: $e");
     }
   }
 
@@ -104,8 +157,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       await AdminService.approve(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Property approved'),
+          SnackBar(
+            content: Text(context.tr('property_approved')),
             backgroundColor: Colors.green,
           ),
         );
@@ -130,7 +183,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: isDark ? DarkColors.card : LightColors.card,
-          title: Text('Reject Property',
+          title: Text(context.tr('reject_property'),
               style: TextStyle(
                   fontWeight: FontWeight.w700,
                   color: theme.textTheme.bodyLarge?.color)),
@@ -138,7 +191,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             controller: controller,
             maxLines: 3,
             decoration: InputDecoration(
-              hintText: 'Reason for rejection...',
+              hintText: context.tr('reject_reason'),
               filled: true,
               fillColor: isDark
                   ? DarkColors.backgroundSecondary
@@ -152,7 +205,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
+              child: Text(context.tr('cancel'),
                   style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
             ),
             TextButton(
@@ -161,8 +214,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                   Navigator.pop(ctx, controller.text.trim());
                 }
               },
-              child: const Text('Reject',
-                  style: TextStyle(
+              child: Text(context.tr('reject'),
+                  style: const TextStyle(
                       color: AppColors.error, fontWeight: FontWeight.w700)),
             ),
           ],
@@ -174,8 +227,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         await AdminService.reject(id, result);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Property rejected'),
+            SnackBar(
+                content: Text(context.tr('property_rejected')),
                 backgroundColor: Colors.orange),
           );
           _loadData();
@@ -234,14 +287,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Admin Dashboard',
+                Text(context.tr('admin_dashboard'),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       color: theme.textTheme.bodyLarge?.color,
                     )),
                 const SizedBox(height: 2),
-                Text('Review and manage submitted properties',
+                Text(context.tr('admin_subtitle'),
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.textTheme.bodyMedium?.color,
@@ -249,19 +302,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               ],
             ),
           ),
-          GestureDetector(
-            onTap: _loadData,
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.refresh, size: 20, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: 12),
+
           GestureDetector(
             onTap: () {
               NotificationsScreen.show(context);
@@ -303,13 +344,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          _buildStatCard('Pending', _stats['pending'] ?? 0, Colors.orange,
+          _buildStatCard(context.tr('pending'), _stats['pending'] ?? 0, Colors.orange,
               Icons.hourglass_empty, theme, isDark),
           const SizedBox(width: 10),
-          _buildStatCard('Published', _stats['published'] ?? 0, Colors.green,
+          _buildStatCard(context.tr('published'), _stats['published'] ?? 0, Colors.green,
               Icons.check_circle_outline, theme, isDark),
           const SizedBox(width: 10),
-          _buildStatCard('Rejected', _stats['rejected'] ?? 0, Colors.red,
+          _buildStatCard(context.tr('rejected'), _stats['rejected'] ?? 0, Colors.red,
               Icons.cancel_outlined, theme, isDark),
         ],
       ),
@@ -388,10 +429,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         dividerColor: Colors.transparent,
         splashBorderRadius: BorderRadius.circular(12),
-        tabs: const [
-          Tab(text: 'Pending'),
-          Tab(text: 'Published'),
-          Tab(text: 'Rejected'),
+        tabs: [
+          Tab(text: context.tr('pending')),
+          Tab(text: context.tr('published')),
+          Tab(text: context.tr('rejected')),
         ],
       ),
     );
@@ -408,7 +449,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           children: [
             Icon(Icons.inbox_outlined, size: 64, color: theme.dividerColor),
             const SizedBox(height: 16),
-            Text('No $_currentFilter properties',
+            Text(context.tr('no_properties_status').replaceAll('%s', context.tr(_currentFilter)),
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -533,7 +574,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(prop['title'] as String? ?? 'Untitled',
+                Text(prop['title'] as String? ?? context.tr('untitled'),
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -648,7 +689,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
-                            child: Text('View',
+                            child: Text(context.tr('view'),
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -671,8 +712,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
-                            child: const Text('Approve',
-                                style: TextStyle(
+                            child: Text(context.tr('approve'),
+                                style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white)),
@@ -693,8 +734,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                       AppColors.error.withValues(alpha: 0.3)),
                             ),
                             alignment: Alignment.center,
-                            child: const Text('Reject',
-                                style: TextStyle(
+                            child: Text(context.tr('reject'),
+                                style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.error)),

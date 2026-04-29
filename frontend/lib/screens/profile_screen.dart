@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -15,7 +16,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   Map<String, dynamic> _stats = {
     'listings': 0,
     'reviews': 0,
@@ -23,13 +24,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<Map<String, dynamic>> _listings = [];
   bool _isLoading = true;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProfileData();
     });
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+      _pollData();
+    } else if (state == AppLifecycleState.paused) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollData();
+    });
+  }
+
+  Future<void> _pollData() async {
+    if (!mounted) return;
+    try {
+      final statsRes = await ProfileService.getStats();
+      final listingsRes = await ProfileService.getListings();
+      if (mounted) {
+        setState(() {
+          _stats = statsRes;
+          _listings = List<Map<String, dynamic>>.from(listingsRes);
+        });
+      }
+    } catch (e) {
+      // Ignore background errors
+    }
   }
 
   Future<void> _loadProfileData() async {
@@ -668,7 +712,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(child: CircularProgressIndicator()),
                       )
-                    else
+                    else if (user?['role'] != 'admin')
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 24),
@@ -718,32 +762,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
                                 onTap: () => context.push('/admin/shell'),
                               ),
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.calendar_today, color: AppColors.primary),
                               ),
-                              title: Text(
-                                context.tr('my_requests') ?? 'My Requests',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.textTheme.bodyLarge?.color,
+                          if (user?['role'] != 'admin') ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.calendar_today, color: AppColors.primary),
                                 ),
+                                title: Text(
+                                  context.tr('my_requests') ?? 'My Requests',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
+                                onTap: () => context.push('/requests'),
                               ),
-                              trailing: Icon(Icons.chevron_right, color: theme.dividerColor),
-                              onTap: () => context.push('/requests'),
                             ),
-                          ),
-                          _buildListings(theme, isDark),
+                            _buildListings(theme, isDark),
+                          ],
                         ],
                       ),
 

@@ -31,7 +31,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.dashboard_outlined),
-            label: 'Dashboard',
+            label: context.tr('admin_dashboard_tab') ?? 'Dashboard',
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),

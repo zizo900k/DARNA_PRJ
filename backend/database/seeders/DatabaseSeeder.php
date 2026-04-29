@@ -34,11 +34,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Create Categories
-        $catAppartement = Category::firstOrCreate(['name' => 'Appartement']);
-        $catVilla = Category::firstOrCreate(['name' => 'Villa']);
-        $catStudio = Category::firstOrCreate(['name' => 'Studio']);
-        $catMaison = Category::firstOrCreate(['name' => 'Maison']);
+        // Create Categories matching frontend PropertiesData
+        $catAppartement = Category::firstOrCreate(['id' => 1], ['name' => 'Apartment']);
+        $catVilla       = Category::firstOrCreate(['id' => 2], ['name' => 'Villa']);
+        $catMaison      = Category::firstOrCreate(['id' => 3], ['name' => 'House']);
+        $catStudio      = Category::firstOrCreate(['id' => 4], ['name' => 'Studio']);
+        $catCommercial  = Category::firstOrCreate(['id' => 5], ['name' => 'Commercial']);
+        $catRiad        = Category::firstOrCreate(['id' => 7], ['name' => 'Riad']);
+        $catChalet      = Category::firstOrCreate(['id' => 8], ['name' => 'Chalet']);
 
         // Create Fake Properties
         Property::create([

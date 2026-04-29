@@ -175,7 +175,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     IconButton(
                       icon: Icon(Icons.done_all_rounded, color: AppColors.primary),
-                      tooltip: 'Mark all as read',
+                      tooltip: context.tr('mark_all_read'),
                       onPressed: () {
                         context.read<NotificationProvider>().markAllAsRead();
                       },
