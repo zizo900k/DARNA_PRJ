@@ -8,9 +8,9 @@ import '../theme/app_theme.dart';
 import '../services/property_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
+import '../providers/category_provider.dart';
 import '../theme/language_provider.dart';
 import '../widgets/location_picker_map.dart';
-import '../data/properties_data.dart';
 
 class UpdateListingScreen extends StatefulWidget {
   final int propertyId;
@@ -45,7 +45,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
   late int _kitchens;
   late int _toilets;
   late int _livingRooms;
-  late String _phoneNumber;
+
   late List<String> _facilities;
   late List<String> _existingPhotos;
   final List<XFile> _newPhotos = [];
@@ -65,12 +65,9 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
     final categoryData = p['category'];
     if (categoryData != null && categoryData is Map) {
       _categoryId = categoryData['id'] ?? 4;
+      _category = (categoryData['name'] ?? 'house').toString().toLowerCase();
     } else {
       _categoryId = 4;
-    }
-    try {
-      _category = PropertiesData.propertyTypes.firstWhere((e) => e.id == _categoryId).value;
-    } catch (e) {
       _category = 'house';
     }
     
@@ -99,7 +96,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
        _facilities = ['Parking Lot'];
     }
 
-    _phoneNumber = p['phone_number'] ?? '+212 600000000';
+
     
     // Parse photos based on backend structure
     _existingPhotos = [];
@@ -112,9 +109,13 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
         if (url != null) _existingPhotos.add(url.toString());
       }
     }
+
+    // Fetch live categories
+    Future.microtask(() {
+      context.read<CategoryProvider>().fetchCategories();
+    });
   }
 
-  final List<PropertyType> _categories = PropertiesData.propertyTypes;
   final List<String> _facilityOptions = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
 
   void _toggleFacility(String facility) {
@@ -167,7 +168,7 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
         'living_rooms': _livingRooms,
         'total_rooms': _totalRooms,
         'facilities': _facilities,
-        'phone_number': _phoneNumber,
+
         'existing_photos': _existingPhotos,
         if (_latitude != null) 'latitude': _latitude,
         if (_longitude != null) 'longitude': _longitude,
@@ -336,37 +337,52 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
 
                       // Property Category
                       _buildSectionTitle(context.tr('property_category'), theme),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: _categories.map((catType) {
-                            final isActive = _category == catType.value;
-                            return GestureDetector(
-                              onTap: () => setState(() {
-                                _category = catType.value;
-                                _categoryId = catType.id;
-                              }),
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? const Color(0xFF0D5C63)
-                                      : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  context.tr(catType.value) ?? catType.name,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: isActive ? AppColors.white : theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                              ),
+                      Consumer<CategoryProvider>(
+                        builder: (context, catProvider, _) {
+                          if (catProvider.isLoading && catProvider.categories.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                             );
-                          }).toList(),
-                        ),
+                          }
+                          return SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: catProvider.categories.map((cat) {
+                                final catName = cat['name'] ?? '';
+                                final catSlug = cat['slug'] ?? catName.toLowerCase();
+                                final catId = cat['id'] ?? 0;
+                                final isActive = _categoryId == catId;
+                                return GestureDetector(
+                                  onTap: () => setState(() {
+                                    _category = catSlug;
+                                    _categoryId = catId;
+                                  }),
+                                  child: Container(
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: isActive
+                                          ? const Color(0xFF0D5C63)
+                                          : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      context.tr('category.$catSlug') != 'category.$catSlug' 
+                                          ? context.tr('category.$catSlug') 
+                                          : catName,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: isActive ? AppColors.white : theme.textTheme.bodyLarge?.color,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 24),
 
@@ -796,8 +812,8 @@ class _UpdateListingScreenState extends State<UpdateListingScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           alignment: Alignment.center,
-                          child: const Text(
-                            'Close',
+                          child: Text(
+                            context.tr('close'),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,

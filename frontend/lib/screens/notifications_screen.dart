@@ -202,13 +202,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               decoration: BoxDecoration(
                                 color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
                                 shape: BoxShape.circle,
-                                boxShadow: [
+                                boxShadow: isDark ? [
                                   BoxShadow(
                                     color: AppColors.primary.withValues(alpha: 0.15),
                                     blurRadius: 30,
                                     spreadRadius: 5,
                                   ),
-                                ],
+                                ] : [],
                               ),
                               child: Icon(
                                 Icons.notifications_off_rounded,
@@ -218,7 +218,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                             const SizedBox(height: 32),
                             Text(
-                              context.tr('no_notifications') == 'no_notifications' ? 'No notifications yet' : context.tr('no_notifications'),
+                              context.tr('no_notifications_yet'),
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
@@ -266,13 +266,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           decoration: BoxDecoration(
                             color: isDark ? DarkColors.card : Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
+                            boxShadow: isDark ? [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
-                            ],
+                            ] : [],
                             border: Border.all(
                               color: !notification.isRead 
                                   ? AppColors.primary.withValues(alpha: 0.3)

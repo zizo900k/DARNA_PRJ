@@ -156,10 +156,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                                 languageProvider.setLanguage(newValue);
                                               }
                                             },
-                                            items: const [
-                                              DropdownMenuItem(value: 'en', child: Text('English')),
-                                              DropdownMenuItem(value: 'fr', child: Text('Français')),
-                                              DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                                            items: [
+                                              DropdownMenuItem(value: 'en', child: Text(context.tr('language_english'))),
+                                              DropdownMenuItem(value: 'fr', child: Text(context.tr('language_french'))),
+                                              const DropdownMenuItem(value: 'ar', child: Text('العربية')),
                                             ],
                                           ),
                                         ),

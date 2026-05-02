@@ -234,7 +234,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
     final hasUnread = unreadCount > 0;
     final lastMessage = conv['last_message']?.toString() ?? '';
     final time = _formatTime(conv['last_message_at']?.toString());
-    final name = otherUser?['name'] ?? 'User';
+    final name = otherUser?['name'] ?? context.tr('user');
     String? avatar = otherUser?['full_avatar_url'] ?? otherUser?['avatar'];
     if (avatar != null && avatar.isNotEmpty && !avatar.startsWith('http')) {
       final baseUrl = ApiService.baseUrl.replaceAll('/api', '');

@@ -5,6 +5,7 @@ import '../data/properties_data.dart';
 import 'package:provider/provider.dart';
 import '../theme/favorites_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/language_provider.dart';
 import 'shimmer_placeholder.dart';
 
 class RentalPropertyCard extends StatelessWidget {
@@ -17,11 +18,15 @@ class RentalPropertyCard extends StatelessWidget {
     this.heroTag,
   });
 
-  String _formatPrice() {
+  String _formatPrice(BuildContext context) {
     if (property.pricePerMonth != null) {
-      return property.pricePerMonth!.toStringAsFixed(0);
+      return '${property.pricePerMonth!.toStringAsFixed(0)} ${context.tr('mad')}';
     } else if (property.price != null) {
-      return property.price!.toStringAsFixed(0);
+      if (property.price! >= 1000000) {
+        final priceInMillions = (property.price! / 1000000).toStringAsFixed(2);
+        return '${priceInMillions}M ${context.tr('mad')}';
+      }
+      return '${property.price!.toStringAsFixed(0)} ${context.tr('mad')}';
     }
     return 'N/A';
   }
@@ -38,13 +43,27 @@ class RentalPropertyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark 
+            ? null 
+            : Border.all(
+                color: const Color(0xFFE2E8F0), // Clean stroke
+                width: 1.5, // Slightly thicker for sharpness
+              ),
+        boxShadow: isDark 
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.02), // Very subtle, sharp shadow
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
@@ -98,25 +117,59 @@ class RentalPropertyCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Type Badge
+                  // Badges (Featured + Type)
                   Positioned(
                     top: 10,
                     left: 10,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      child: Text(
-                        property.type.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                          letterSpacing: 0.5,
+                    child: Row(
+                      children: [
+                        if (property.featured) ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.star_rounded, size: 12, color: AppColors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Featured',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.white,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          child: Text(
+                            property.type.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                   // Heart Icon
@@ -146,7 +199,7 @@ class RentalPropertyCard extends StatelessWidget {
               ),
               // Content
               Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(14.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -155,16 +208,16 @@ class RentalPropertyCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                         color: theme.textTheme.bodyLarge?.color,
-                        letterSpacing: -0.2,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 12, color: AppColors.primary),
+                        Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -174,70 +227,52 @@ class RentalPropertyCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: theme.textTheme.bodyMedium?.color,
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                             ),
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (property.bedrooms > 0) ...[
+                          Icon(Icons.bed_outlined, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                          const SizedBox(width: 4),
+                          Text('${property.bedrooms}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8))),
+                          const SizedBox(width: 12),
+                        ],
+                        if (property.bathrooms > 0) ...[
+                          Icon(Icons.water_drop_outlined, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
+                          const SizedBox(width: 4),
+                          Text('${property.bathrooms}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8))),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              _formatPrice(),
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary,
-                                letterSpacing: -0.4,
-                              ),
+                        Flexible(
+                          child: Text(
+                            _formatPrice(context),
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: -0.4,
                             ),
-                            const Text(
-                              ' MAD',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            if (property.pricePerMonth != null)
-                              Text(
-                                '/mo',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                              ),
-                          ],
+                          ),
                         ),
-                        if (property.rating > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.star, size: 11, color: Color(0xFFFFC107)),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '${property.rating}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                              ],
+                        if (property.pricePerMonth != null)
+                          Text(
+                            '/${context.tr('month')}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                             ),
                           ),
                       ],

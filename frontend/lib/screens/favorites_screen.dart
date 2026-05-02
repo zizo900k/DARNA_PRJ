@@ -222,7 +222,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ? (isDark ? DarkColors.card : AppColors.white)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: isActive
+          border: (isActive && !isDark) ? Border.all(color: const Color(0xFFE2E8F0), width: 1.5) : null,
+          boxShadow: (isActive && isDark)
               ? [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -280,13 +281,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? DarkColors.card : AppColors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                  boxShadow: isDark ? [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
                       offset: const Offset(0, 4),
                       blurRadius: 12,
                     ),
-                  ],
+                  ] : [],
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -366,7 +368,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          (item['title'] ?? 'Unknown Property').toString(),
+                          (item['title'] ?? context.tr('unknown_property')).toString(),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -402,7 +404,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                (item['location'] ?? 'Unknown Location').toString(),
+                                (item['location'] ?? context.tr('unknown_location')).toString(),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: isDark
@@ -461,13 +463,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? DarkColors.card : AppColors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                  boxShadow: isDark ? [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.08),
                       offset: const Offset(0, 4),
                       blurRadius: 12,
                     ),
-                  ],
+                  ] : [],
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Row(
@@ -526,7 +529,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            (item['type'] ?? 'Property').toString(),
+                            (item['type'] ?? context.tr('property')).toString(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -545,7 +548,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            (item['title'] ?? 'Unknown Property').toString(),
+                            (item['title'] ?? context.tr('unknown_property')).toString(),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -585,7 +588,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  (item['location'] ?? 'Unknown Location').toString(),
+                                  (item['location'] ?? context.tr('unknown_location')).toString(),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark

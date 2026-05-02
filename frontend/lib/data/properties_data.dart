@@ -30,6 +30,7 @@ class Property {
   final String? propertyLabel;
   final double? latitude;
   final double? longitude;
+  final String? categoryName;
 
   const Property({
     required this.id,
@@ -49,6 +50,7 @@ class Property {
     this.propertyLabel,
     this.latitude,
     this.longitude,
+    this.categoryName,
   });
   Map<String, dynamic> toMap() {
     return {
@@ -94,6 +96,7 @@ class Property {
       propertyLabel: json['property_label'],
       latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
       longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
+      categoryName: json['category'] != null ? json['category']['name'] : null,
     );
   }
 }

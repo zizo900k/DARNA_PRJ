@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/language_provider.dart';
 import 'admin_dashboard_screen.dart';
+import 'admin_categories_screen.dart';
 import 'profile_screen.dart';
 
 class AdminShellScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
 
   final List<Widget> _pages = const [
     AdminDashboardScreen(),
+    AdminCategoriesScreen(),
     ProfileScreen(),
   ];
 
@@ -32,6 +34,10 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
           NavigationDestination(
             icon: const Icon(Icons.dashboard_outlined),
             label: context.tr('admin_dashboard_tab') ?? 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.category_outlined),
+            label: context.tr('categories_tab') ?? 'Categories',
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),

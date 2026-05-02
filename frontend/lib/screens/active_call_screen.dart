@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/call_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/language_provider.dart';
 
 class ActiveCallScreen extends StatelessWidget {
   const ActiveCallScreen({super.key});
@@ -37,11 +38,11 @@ class ActiveCallScreen extends StatelessWidget {
     final callData = callProvider.currentCallData;
 
     if (!callProvider.isCalling || callData == null) {
-      return const Scaffold(body: Center(child: Text('Call ended')));
+      return Scaffold(body: Center(child: Text(context.tr('call_ended'))));
     }
 
     final otherUser = callData['otherUser'] ?? (callData['signalData'] != null ? callData['signalData']['sender'] : null);
-    final name = otherUser != null ? (otherUser['name'] ?? 'User') : 'Calling...';
+    final name = otherUser != null ? (otherUser['name'] ?? context.tr('user')) : context.tr('calling');
     final avatar = otherUser != null ? otherUser['avatar'] : null;
 
     return Scaffold(

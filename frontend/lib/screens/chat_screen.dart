@@ -355,7 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final authProvider = context.watch<AuthProvider>();
     final currentUserId = authProvider.user?['id'];
 
-    final otherName = widget.otherUser?['name'] ?? 'User';
+    final otherName = widget.otherUser?['name'] ?? context.tr('user');
     String? otherAvatarUrl = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
     if (otherAvatarUrl != null && otherAvatarUrl.isNotEmpty && !otherAvatarUrl.startsWith('http')) {
       final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
@@ -508,7 +508,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDeletedForEveryone = msg['deleted_for_everyone_at'] != null;
 
     final otherAvatar = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
-    final otherName = widget.otherUser?['name'] ?? 'User';
+    final otherName = widget.otherUser?['name'] ?? context.tr('user');
     // We can use context.read here since the parent build method is already watching it
     final authProvider = context.read<AuthProvider>();
     final myAvatar = authProvider.user?['full_avatar_url'] ?? authProvider.user?['avatar'];
@@ -731,7 +731,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildTypingBubble(ThemeData theme, bool isDark, {bool isRecording = false}) {
     final otherAvatar = widget.otherUser?['full_avatar_url'] ?? widget.otherUser?['avatar'];
-    final otherName = widget.otherUser?['name'] ?? 'User';
+    final otherName = widget.otherUser?['name'] ?? context.tr('user');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

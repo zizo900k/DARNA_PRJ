@@ -167,7 +167,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${context.tr('error_prefix')}$e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -236,7 +236,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text('${context.tr('error_prefix')}$e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -344,13 +344,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          _buildStatCard(context.tr('pending'), _stats['pending'] ?? 0, Colors.orange,
+          _buildStatCard(context.tr('status_pending'), _stats['pending'] ?? 0, Colors.orange,
               Icons.hourglass_empty, theme, isDark),
           const SizedBox(width: 10),
-          _buildStatCard(context.tr('published'), _stats['published'] ?? 0, Colors.green,
+          _buildStatCard(context.tr('status_published'), _stats['published'] ?? 0, Colors.green,
               Icons.check_circle_outline, theme, isDark),
           const SizedBox(width: 10),
-          _buildStatCard(context.tr('rejected'), _stats['rejected'] ?? 0, Colors.red,
+          _buildStatCard(context.tr('status_rejected'), _stats['rejected'] ?? 0, Colors.red,
               Icons.cancel_outlined, theme, isDark),
         ],
       ),
@@ -365,15 +365,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         decoration: BoxDecoration(
           color: isDark ? DarkColors.card : LightColors.card,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
+          border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          boxShadow: isDark ? [
             BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : const Color(0xFF0F172A).withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
-          ],
+          ] : [],
         ),
         child: Column(
           children: [
@@ -430,9 +429,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         dividerColor: Colors.transparent,
         splashBorderRadius: BorderRadius.circular(12),
         tabs: [
-          Tab(text: context.tr('pending')),
-          Tab(text: context.tr('published')),
-          Tab(text: context.tr('rejected')),
+          Tab(text: context.tr('status_pending')),
+          Tab(text: context.tr('status_published')),
+          Tab(text: context.tr('status_rejected')),
         ],
       ),
     );
@@ -449,7 +448,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           children: [
             Icon(Icons.inbox_outlined, size: 64, color: theme.dividerColor),
             const SizedBox(height: 16),
-            Text(context.tr('no_properties_status').replaceAll('%s', context.tr(_currentFilter)),
+            Text(context.tr('no_properties_status').replaceAll('%s', context.tr('status_$_currentFilter')),
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -483,10 +482,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final ownerName =
         (prop['user'] is Map ? prop['user']['name'] : null) as String? ??
             'Unknown';
-    final category =
-        (prop['category'] is Map ? prop['category']['name'] : null)
-                as String? ??
-            '';
+    final categoryMap = prop['category'] is Map ? prop['category'] : null;
+    final categorySlug = categoryMap?['slug'];
+    final categoryName = categoryMap?['name'] as String? ?? '';
+    final category = categorySlug != null && context.tr('category.$categorySlug') != 'category.$categorySlug'
+        ? context.tr('category.$categorySlug')
+        : categoryName;
     final createdAt = prop['created_at'] as String?;
     String dateStr = '';
     if (createdAt != null) {
@@ -503,15 +504,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       decoration: BoxDecoration(
         color: isDark ? DarkColors.card : LightColors.card,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
+        border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: isDark ? [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.18)
-                : const Color(0xFF0F172A).withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
-        ],
+        ] : [],
       ),
       child: Column(
         children: [
@@ -771,7 +771,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
         color: color,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(status.toUpperCase(),
+      child: Text(context.tr('status_$status').toUpperCase(),
           style: const TextStyle(
               fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
     );

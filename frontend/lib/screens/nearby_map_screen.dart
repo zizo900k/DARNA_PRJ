@@ -154,13 +154,14 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E2B3C).withOpacity(0.9) : Colors.white.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                  boxShadow: isDark ? [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.12),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
-                  ],
+                  ] : [],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -218,23 +219,28 @@ class _NearbyMapScreenState extends State<NearbyMapScreen> {
   Widget _buildBottomCard(bool isDark, ThemeData theme) {
     final prop = _selectedProperty!;
     final imageUrl = _getPropertyImage(prop);
-    final title = prop['title'] ?? 'Property';
+    final title = prop['title'] ?? context.tr('property');
     final location = prop['location'] ?? '';
     final price = _getPrice(prop);
     final type = prop['type']?.toString().toUpperCase() ?? '';
-    final category = prop['category']?['name'] ?? '';
+    final categorySlug = prop['category']?['slug'];
+    final categoryName = prop['category']?['name'] ?? '';
+    final category = categorySlug != null && context.tr('category.$categorySlug') != 'category.$categorySlug'
+        ? context.tr('category.$categorySlug')
+        : categoryName;
 
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1A2332) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: isDark ? [
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
-        ],
+        ] : [],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

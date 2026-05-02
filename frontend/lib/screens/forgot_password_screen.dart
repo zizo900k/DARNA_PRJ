@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_input.dart';
 import '../services/auth_service.dart';
+import '../theme/language_provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -24,7 +25,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _requestResetCode() async {
     if (_email.isEmpty || !_email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address')),
+        SnackBar(content: Text(context.tr('valid_email_error'))),
       );
       return;
     }
@@ -52,19 +53,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _resetPassword() async {
     if (_code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Code must be 6 digits')),
+        SnackBar(content: Text(context.tr('code_digits_error'))),
       );
       return;
     }
     if (_password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 8 characters')),
+        SnackBar(content: Text(context.tr('password_length_error'))),
       );
       return;
     }
     if (_password != _confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        SnackBar(content: Text(context.tr('passwords_match_error'))),
       );
       return;
     }
@@ -78,7 +79,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset successfully! Please sign in.'), backgroundColor: Colors.green),
+          SnackBar(content: Text(context.tr('password_reset_success')), backgroundColor: Colors.green),
         );
         context.go('/signin');
       }
@@ -97,7 +98,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Forgot Password'),
+        title: Text(context.tr('forgot_password_title')),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
@@ -133,18 +134,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Reset Password',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          Text(
+            context.tr('reset_password'),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Enter the email address associated with your account and we\'ll send you a 6-digit code to reset your password.',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+          Text(
+            context.tr('reset_password_desc'),
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 32),
           CustomInput(
-            placeholder: 'Email',
+            placeholder: context.tr('email'),
             value: _email,
             onChangeText: (val) => setState(() => _email = val),
             keyboardType: TextInputType.emailAddress,
@@ -155,7 +156,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : CustomButton(
-                  title: 'Send Code',
+                  title: context.tr('send_code'),
                   onPress: _requestResetCode,
                 ),
         ],
@@ -169,18 +170,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Enter Code',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          Text(
+            context.tr('enter_code_title'),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
-            'We sent a 6-digit code to $_email. Enter it below along with your new password.',
+            '${context.tr('code_sent_to')} $_email${context.tr('code_sent_suffix')}',
             style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 32),
           CustomInput(
-            placeholder: '6-digit Code',
+            placeholder: context.tr('digit_code'),
             value: _code,
             onChangeText: (val) => setState(() => _code = val),
             keyboardType: TextInputType.number,
@@ -188,7 +189,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 16),
           CustomInput(
-            placeholder: 'New Password',
+            placeholder: context.tr('new_password'),
             value: _password,
             onChangeText: (val) => setState(() => _password = val),
             secureTextEntry: true,
@@ -196,7 +197,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           const SizedBox(height: 16),
           CustomInput(
-            placeholder: 'Confirm Password',
+            placeholder: context.tr('confirm_password'),
             value: _confirmPassword,
             onChangeText: (val) => setState(() => _confirmPassword = val),
             secureTextEntry: true,
@@ -206,7 +207,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : CustomButton(
-                  title: 'Reset Password',
+                  title: context.tr('reset_password'),
                   onPress: _resetPassword,
                 ),
         ],

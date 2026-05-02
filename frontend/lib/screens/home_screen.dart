@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../theme/language_provider.dart';
 import '../providers/property_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/category_provider.dart';
 import '../theme/auth_provider.dart';
 import '../data/properties_data.dart';
 import '../widgets/category_pill.dart';
@@ -23,13 +25,58 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String _selectedCategory = 'All';
+  String _selectedLocation = '';
   String _searchQuery = '';
   bool _initialized = false;
   
   List<Map<String, dynamic>> _topLocations = [];
   bool _isTopLocationsLoading = true;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startPolling();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+      _pollData();
+    } else if (state == AppLifecycleState.paused) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollData();
+    });
+  }
+
+  Future<void> _pollData() async {
+    if (!mounted) return;
+    try {
+      // Fetch new properties silently
+      await context.read<PropertyProvider>().loadHomeScreenData(silent: true);
+    } catch (e) {
+      // Ignore background error
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -40,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!mounted) return;
         // ignore: use_build_context_synchronously
         context.read<PropertyProvider>().loadHomeScreenData();
+        context.read<CategoryProvider>().fetchCategories();
         context.read<ChatProvider>().fetchUnreadCount();
         
         final authProvider = context.read<AuthProvider>();
@@ -81,6 +129,85 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showLocationPicker() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cities = [
+      '',
+      'Agadir',
+      'Boujdour',
+      'Casablanca',
+      'Dakhla',
+      'Laayoune',
+      'Marrakech',
+      'Rabat',
+      'Tangier',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                context.tr('change_location'),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: cities.length,
+                  itemBuilder: (context, index) {
+                    final city = cities[index];
+                    final isSelected = _selectedLocation == city;
+                    return ListTile(
+                      title: Text(
+                        city.isEmpty ? context.tr('all_morocco') : city,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+                          color: isSelected ? AppColors.primary : theme.textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
+                      onTap: () {
+                        setState(() {
+                          _selectedLocation = city;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -88,31 +215,41 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = context.watch<ThemeProvider>();
     final propertyProvider = context.watch<PropertyProvider>();
 
-    final featuredProperties = propertyProvider.featuredProperties;
-    final rentalProperties = propertyProvider.rentalProperties;
-    final recentProperties = propertyProvider.recentProperties;
+    final allFeatured = propertyProvider.featuredProperties;
+    final allRental = propertyProvider.rentalProperties;
+    final allSale = propertyProvider.saleProperties;
+    final allRecent = propertyProvider.recentProperties;
     final isLoading = propertyProvider.isLoading;
 
+    // Filter by selected category and location
+    List<Property> filterProperties(List<Property> list) {
+      var filtered = list;
+      if (_selectedCategory != 'All' && _selectedCategory != 'الكل' && _selectedCategory != 'Tous') {
+        filtered = filtered.where((p) {
+          final catName = p.categoryName?.toLowerCase() ?? p.type.toLowerCase();
+          return catName == _selectedCategory.toLowerCase();
+        }).toList();
+      }
+      if (_selectedLocation.isNotEmpty) {
+        filtered = filtered.where((p) => p.location.toLowerCase().contains(_selectedLocation.toLowerCase())).toList();
+      }
+      return filtered;
+    }
+
+    final featuredProperties = filterProperties(allFeatured);
+    final rentalProperties = filterProperties(allRental);
+    final saleProperties = filterProperties(allSale);
+    final recentProperties = filterProperties(allRecent);
+
     return Scaffold(
-      backgroundColor: isDark
-          ? DarkColors.backgroundSecondary
-          : LightColors.backgroundSecondary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
             // Header
             Container(
               padding: const EdgeInsets.only(
-                  top: 12, left: 24, right: 24, bottom: 20),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
-                border: Border(
-                  bottom: BorderSide(
-                    color: isDark ? DarkColors.border : LightColors.border.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
-              ),
+                  top: 12, left: 24, right: 24, bottom: 8),
               child: Column(
                 children: [
                   Row(
@@ -133,22 +270,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 6),
                           GestureDetector(
-                            onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('${context.tr('change_location')} (${context.tr('coming_soon')})'),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                            },
+                            onTap: _showLocationPicker,
                             child: Row(
                               children: [
                                 const Icon(Icons.location_on,
                                     size: 16, color: AppColors.primary),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Morocco, Laayoune',
+                                  _selectedLocation.isEmpty ? context.tr('all_morocco') : 'Morocco, $_selectedLocation',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: theme.textTheme.bodyMedium?.color,
@@ -176,8 +305,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? DarkColors.backgroundSecondary
-                                    : LightColors.backgroundSecondary,
+                                    : Colors.transparent,
                                 shape: BoxShape.circle,
+                                border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                               ),
                               child: Icon(
                                 isDark
@@ -203,8 +333,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? DarkColors.backgroundSecondary
-                                    : LightColors.backgroundSecondary,
+                                    : Colors.transparent,
                                 shape: BoxShape.circle,
+                                border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                               ),
                               child: Consumer<NotificationProvider>(
                                 builder: (context, notifProvider, child) {
@@ -233,18 +364,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: Container(
-                          height: 52,
+                          height: 54,
                           decoration: BoxDecoration(
                             color: isDark
-                                ? DarkColors.backgroundSecondary
-                                : LightColors.backgroundSecondary.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(24),
+                                ? DarkColors.card
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: isDark
+                                ? null
+                                : Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
+                            boxShadow: isDark
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : [], // Removed shadow completely for a clean flat stroke look
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.only(left: 16, right: 8),
                           child: Row(
                             children: [
-                              const Icon(Icons.search,
-                                  size: 20, color: AppColors.primary),
+                              const Icon(Icons.search_rounded,
+                                  size: 22, color: AppColors.primary),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: TextField(
@@ -261,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     hintText: context.tr('search_properties'),
                                     hintStyle: TextStyle(
                                         color: theme.textTheme.bodyMedium?.color
-                                            ?.withValues(alpha: 0.5)),
+                                            ?.withValues(alpha: 0.6)),
                                     border: InputBorder.none,
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
@@ -272,38 +418,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                 GestureDetector(
                                   onTap: () =>
                                       setState(() => _searchQuery = ''),
-                                  child: Icon(Icons.cancel,
-                                      size: 20,
-                                      color: theme.textTheme.bodyMedium?.color
-                                          ?.withValues(alpha: 0.5)),
-                                )
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    child: Icon(Icons.cancel,
+                                        size: 20,
+                                        color: theme.textTheme.bodyMedium?.color
+                                            ?.withValues(alpha: 0.5)),
+                                  ),
+                                ),
+                              Container(
+                                height: 24,
+                                width: 1,
+                                color: isDark ? Colors.grey[800] : Colors.grey[300],
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                              GestureDetector(
+                                onTap: _showFilterModal,
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 22),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
-                      if (_searchQuery.isEmpty) ...[
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: _showFilterModal,
-                          child: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.primaryDark
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child:
-                                const Icon(Icons.tune, color: AppColors.white),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ],
@@ -317,24 +456,51 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Categories
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     _buildSectionHeader(
                         context.tr('categories'), context.tr('see_all')),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: PropertiesData.categories.map((category) {
-                          String translatedName = context.tr(category.name.toLowerCase());
-                          if (translatedName == category.name.toLowerCase()) translatedName = category.name;
-                          return CategoryPill(
-                            name: translatedName,
-                            isActive: _selectedCategory == category.name,
-                            onPress: () => setState(
-                                () => _selectedCategory = category.name),
+                    Consumer<CategoryProvider>(
+                      builder: (context, catProvider, _) {
+                        if (catProvider.isLoading && catProvider.categories.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           );
-                        }).toList(),
-                      ),
+                        }
+                        
+                        final allCategories = [
+                          {'name': 'All', 'slug': 'all', 'id': 0},
+                          ...catProvider.categories
+                        ];
+                        
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: allCategories.map((cat) {
+                              final catName = cat['name'] ?? '';
+                              final catSlug = cat['slug'] ?? catName.toLowerCase();
+                              
+                              String translatedName = catName == 'All' 
+                                  ? (context.tr('all') != 'all' ? context.tr('all') : 'All')
+                                  : (context.tr('category.$catSlug') != 'category.$catSlug' 
+                                      ? context.tr('category.$catSlug') 
+                                      : catName);
+                                      
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: CategoryPill(
+                                  name: translatedName,
+                                  isActive: _selectedCategory == catName,
+                                  onPress: () => setState(
+                                      () => _selectedCategory = catName),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
                     ),
 
                     // Stats Banner
@@ -381,6 +547,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
+                      physics: const BouncingScrollPhysics(),
                       child: Row(
                         children:
                             featuredProperties.asMap().entries.map((entry) {
@@ -428,6 +595,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
+                      physics: const BouncingScrollPhysics(),
                       child: Row(
                         children: _topLocations.asMap().entries.map((entry) {
                           final index = entry.key;
@@ -449,27 +617,27 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                             child: Container(
-                              width: 140,
-                              height: 180,
+                              width: 125,
+                              height: 150,
                               margin: const EdgeInsets.only(right: 12),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(20),
                                 gradient: LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: isDark
                                       ? [DarkColors.backgroundSecondary, DarkColors.card]
-                                      : [AppColors.primary.withValues(alpha: 0.1), AppColors.primary.withValues(alpha: 0.02)],
+                                      : [AppColors.primary.withValues(alpha: 0.08), AppColors.primary.withValues(alpha: 0.02)],
                                 ),
                                 border: Border.all(
                                   color: isDark ? DarkColors.border : AppColors.primary.withValues(alpha: 0.1),
-                                  width: 1.5,
+                                  width: 1,
                                 ),
                               ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(20),
                                   onTap: () {
                                     context.go('/search', extra: {'city': locationName});
                                   },
@@ -480,36 +648,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.all(14),
+                                          padding: const EdgeInsets.all(10),
                                           decoration: BoxDecoration(
                                             color: isDark ? DarkColors.card : Colors.white,
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppColors.primary.withValues(alpha: 0.15),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 4),
+                                                color: AppColors.primary.withValues(alpha: 0.1),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
                                           child: const Icon(
                                             Icons.location_on,
                                             color: AppColors.primary,
-                                            size: 26,
+                                            size: 20,
                                           ),
                                         ),
-                                        const SizedBox(height: 14),
+                                        const SizedBox(height: 12),
                                         Text(
                                           locationName,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: 15,
+                                            fontSize: 14,
                                             fontWeight: FontWeight.w800,
                                             color: theme.textTheme.bodyLarge?.color,
                                             letterSpacing: -0.2,
                                           ),
                                         ),
-                                        const SizedBox(height: 6),
+                                        const SizedBox(height: 4),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
@@ -552,6 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
+                      physics: const BouncingScrollPhysics(),
                       child: Row(
                         children: rentalProperties.asMap().entries.map((entry) {
                           final index = entry.key;
@@ -585,8 +754,58 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // Recent / All Properties
+                    // Best For Sale
                     const SizedBox(height: 24),
+                    _buildSectionHeader(
+                        context.tr('best_for_sale') ?? 'Best for Sale', context.tr('see_all'),
+                        subtitle: context.tr('properties_for_sale') ?? 'Properties available to buy'),
+                    if (isLoading)
+                       const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                    else if (saleProperties.isEmpty)
+                       Padding(
+                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                         child: Center(child: Text(context.tr('no_sale_found') ?? 'No properties found for sale', style: TextStyle(color: theme.textTheme.bodyMedium?.color))),
+                       )
+                    else 
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: saleProperties.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final property = entry.value;
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration:
+                                Duration(milliseconds: 400 + (index * 150)),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(50 * (1 - value), 0),
+                                child: Opacity(
+                                  opacity: value.clamp(0.0, 1.0),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.65,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 16),
+                                child: RentalPropertyCard(
+                                  property: property,
+                                  heroTag: 'sale_property_image_${property.id}',
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    // Recent / All Properties
+                    const SizedBox(height: 32),
                     _buildSectionHeader(
                         context.tr('recent_properties'), context.tr('see_all'),
                         subtitle: context.tr('recently_added')),
@@ -618,9 +837,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                             },
-                            child: RentalPropertyCard(
-                              property: property,
-                              heroTag: 'recent_property_image_${property.id}',
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: RentalPropertyCard(
+                                property: property,
+                                heroTag: 'recent_property_image_${property.id}',
+                              ),
                             ),
                           );
                         }).toList(),
@@ -642,41 +864,46 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24).copyWith(bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: theme.textTheme.bodyLarge?.color,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  subtitle,
+                  title,
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: theme.textTheme.bodyMedium?.color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: theme.textTheme.bodyLarge?.color,
+                    letterSpacing: -0.5,
                   ),
                 ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           GestureDetector(
             onTap: onExplore ?? () => context.go('/search'),
-            child: Text(
-              action,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                action,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
               ),
             ),
           ),
@@ -689,24 +916,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 24, color: AppColors.white),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 22, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
           Text(
             number,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: AppColors.white,
+              color: Colors.white,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Colors.white70,
             ),
           ),
         ],
@@ -718,7 +952,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: 1,
       height: 40,
-      color: Colors.white.withValues(alpha: 0.25),
+      color: Colors.white.withValues(alpha: 0.2),
       margin: const EdgeInsets.symmetric(horizontal: 8),
     );
   }

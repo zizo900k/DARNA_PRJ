@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/call_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
+import '../theme/language_provider.dart';
 
 class IncomingCallScreen extends StatelessWidget {
   const IncomingCallScreen({super.key});
@@ -113,7 +114,7 @@ class IncomingCallScreen extends StatelessWidget {
                           child: const Icon(Icons.call_end, color: Colors.white, size: 32),
                         ),
                         const SizedBox(height: 8),
-                        const Text('Decline', style: TextStyle(color: Colors.white)),
+                        Text(context.tr('decline'), style: const TextStyle(color: Colors.white)),
                       ],
                     ),
                   ),
@@ -132,7 +133,7 @@ class IncomingCallScreen extends StatelessWidget {
                           child: const Icon(Icons.call, color: Colors.white, size: 32),
                         ),
                         const SizedBox(height: 8),
-                        const Text('Accept', style: TextStyle(color: Colors.white)),
+                        Text(context.tr('accept'), style: const TextStyle(color: Colors.white)),
                       ],
                     ),
                   ),

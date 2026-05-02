@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../theme/app_theme.dart';
+import '../theme/language_provider.dart';
 import '../config/map_config.dart';
 import 'map/mapbox_widget.dart';
 
@@ -49,7 +50,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (!auto) _showError('Location services are disabled.');
+        if (!auto) _showError(context.tr('location_disabled'));
         return;
       }
 
@@ -57,13 +58,13 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (!auto) _showError('Location permissions are denied');
+          if (!auto) _showError(context.tr('location_denied'));
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (!auto) _showError('Location permissions are permanently denied.');
+        if (!auto) _showError(context.tr('location_denied_forever'));
         return;
       }
 
@@ -76,7 +77,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       widget.onLocationSelected(position.latitude, position.longitude);
       
     } catch (e) {
-      if (!auto) _showError('Error getting location: $e');
+      if (!auto) _showError('${context.tr('error')}: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -95,6 +96,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -102,13 +104,14 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           height: 260,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
+            border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            boxShadow: isDark ? [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               )
-            ],
+            ] : [],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
@@ -147,8 +150,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildStyleBtn('Clean', MapStyle.clean, Icons.map_outlined),
-                  _buildStyleBtn('Satellite', MapStyle.premium3D, Icons.satellite_alt),
+                  _buildStyleBtn(context.tr('map_clean'), MapStyle.clean, Icons.map_outlined),
+                  _buildStyleBtn(context.tr('map_satellite'), MapStyle.premium3D, Icons.satellite_alt),
                 ],
               ),
             ),

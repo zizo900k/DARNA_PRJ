@@ -104,8 +104,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       await context.read<AuthProvider>().resendCode(widget.email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code resent.'),
+          SnackBar(
+            content: Text(context.tr('code_resent')),
             backgroundColor: Colors.green,
           ),
         );
@@ -132,7 +132,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Email'),
+        title: Text(context.tr('verify_email')),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -151,9 +151,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       color: isDark ? Colors.white : AppColors.primary,
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      'Check your email',
-                      style: TextStyle(
+                    Text(
+                      context.tr('check_your_email'),
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
@@ -161,7 +161,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'We have sent a 6-digit verification code to\n${widget.email}',
+                      '${context.tr('verification_sent')}\n${widget.email}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 16,
@@ -226,8 +226,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Verify',
+                        child: Text(
+                          context.tr('verify'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -241,7 +241,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Didn't receive the code? ",
+                          context.tr('didnt_receive'),
                           style: TextStyle(
                             color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                             fontSize: 15,
@@ -249,7 +249,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         ),
                         if (_resendCooldown > 0)
                           Text(
-                            'Resend in ${_resendCooldown}s',
+                            '${context.tr('resend_in')} ${_resendCooldown}s',
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 15,
@@ -264,9 +264,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text(
-                              'Resend',
-                              style: TextStyle(
+                            child: Text(
+                              context.tr('resend'),
+                              style: const TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,

@@ -51,16 +51,11 @@ class NotificationProvider with ChangeNotifier {
 
     try {
       final response = await ApiService.get('/notifications');
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _notifications = data.map((n) => AppNotification.fromJson(n)).toList();
-      }
+      final List<dynamic> data = response is List ? response : (response['data'] ?? []);
+      _notifications = data.map((n) => AppNotification.fromJson(n)).toList();
       
       final countResponse = await ApiService.get('/notifications/unread-count');
-      if (countResponse.statusCode == 200) {
-        final data = jsonDecode(countResponse.body);
-        _unreadCount = data['count'] ?? 0;
-      }
+      _unreadCount = countResponse['count'] ?? 0;
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
     }
@@ -71,22 +66,20 @@ class NotificationProvider with ChangeNotifier {
 
   Future<void> markAsRead(int notificationId) async {
     try {
-      final response = await ApiService.put('/notifications/$notificationId/read');
-      if (response.statusCode == 200) {
-        final index = _notifications.indexWhere((n) => n.id == notificationId);
-        if (index != -1 && !_notifications[index].isRead) {
-          _notifications[index] = AppNotification(
-            id: _notifications[index].id,
-            type: _notifications[index].type,
-            title: _notifications[index].title,
-            body: _notifications[index].body,
-            data: _notifications[index].data,
-            isRead: true,
-            createdAt: _notifications[index].createdAt,
-          );
-          if (_unreadCount > 0) _unreadCount--;
-          notifyListeners();
-        }
+      await ApiService.put('/notifications/$notificationId/read');
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      if (index != -1 && !_notifications[index].isRead) {
+        _notifications[index] = AppNotification(
+          id: _notifications[index].id,
+          type: _notifications[index].type,
+          title: _notifications[index].title,
+          body: _notifications[index].body,
+          data: _notifications[index].data,
+          isRead: true,
+          createdAt: _notifications[index].createdAt,
+        );
+        if (_unreadCount > 0) _unreadCount--;
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error marking notification as read: $e');
@@ -95,23 +88,21 @@ class NotificationProvider with ChangeNotifier {
 
   Future<void> markAllAsRead() async {
     try {
-      final response = await ApiService.put('/notifications/read-all');
-      if (response.statusCode == 200) {
-        _notifications = _notifications.map((n) {
-          if (n.isRead) return n;
-          return AppNotification(
-            id: n.id,
-            type: n.type,
-            title: n.title,
-            body: n.body,
-            data: n.data,
-            isRead: true,
-            createdAt: n.createdAt,
-          );
-        }).toList();
-        _unreadCount = 0;
-        notifyListeners();
-      }
+      await ApiService.put('/notifications/read-all');
+      _notifications = _notifications.map((n) {
+        if (n.isRead) return n;
+        return AppNotification(
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          body: n.body,
+          data: n.data,
+          isRead: true,
+          createdAt: n.createdAt,
+        );
+      }).toList();
+      _unreadCount = 0;
+      notifyListeners();
     } catch (e) {
       debugPrint('Error marking all notifications as read: $e');
     }

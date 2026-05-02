@@ -45,13 +45,14 @@ class UserAvatar extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: [
+        border: Theme.of(context).brightness == Brightness.dark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
-        ],
+        ] : [],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size / 2),

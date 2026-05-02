@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/properties',               [PropertyController::class, 'store']);
     Route::put('/properties/{property}',     [PropertyController::class, 'update']);
     Route::delete('/properties/{property}', [PropertyController::class, 'destroy']);
+    Route::put('/properties/{property}/toggle-visibility', [PropertyController::class, 'toggleVisibility']);
 
     // Property Photos
     Route::post('/properties/{property}/photos',            [PropertyPhotoController::class, 'store']);

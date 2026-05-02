@@ -25,7 +25,6 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   String _fullName = '';
   String _email = '';
-  String _phone = '';
   String _password = '';
   late ConfettiController _confettiController;
   StreamSubscription? _googleSignInSubscription;
@@ -50,7 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.redAccent));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('verification_failed')}$e'), backgroundColor: Colors.redAccent));
             }
           }
         }
@@ -117,7 +116,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
+            content: Text('${context.tr('google_signin_failed')}${e.toString()}'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 3),
           ),

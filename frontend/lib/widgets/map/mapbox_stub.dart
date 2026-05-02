@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/map_config.dart';
+import '../../theme/language_provider.dart';
 
 Widget buildMapboxMap(
   BuildContext context, {
@@ -9,5 +10,5 @@ Widget buildMapboxMap(
   MapStyle mapStyle = MapStyle.clean,
   Function(double, double)? onLocationSelected,
 }) {
-  return const Center(child: Text("Unsupported Platform"));
+  return Center(child: Text(context.tr('unsupported_platform')));
 }

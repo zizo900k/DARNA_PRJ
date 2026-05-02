@@ -115,13 +115,7 @@ class _TopLocationsScreenState extends State<TopLocationsScreen> {
                           color: isDark ? DarkColors.border : AppColors.primary.withValues(alpha: 0.1),
                           width: 1.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark ? Colors.transparent : AppColors.primary.withValues(alpha: 0.05),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        boxShadow: [],
                       ),
                       child: Material(
                         color: Colors.transparent,
@@ -143,13 +137,14 @@ class _TopLocationsScreenState extends State<TopLocationsScreen> {
                                       decoration: BoxDecoration(
                                         color: isDark ? DarkColors.card : Colors.white,
                                         shape: BoxShape.circle,
-                                        boxShadow: [
+                                        border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                                        boxShadow: isDark ? [
                                           BoxShadow(
                                             color: AppColors.primary.withValues(alpha: 0.15),
                                             blurRadius: 10,
                                             offset: const Offset(0, 4),
                                           ),
-                                        ],
+                                        ] : [],
                                       ),
                                       child: const Icon(
                                         Icons.location_on, 

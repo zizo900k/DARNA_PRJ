@@ -7,9 +7,9 @@ import '../theme/app_theme.dart';
 import '../services/property_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/property_provider.dart';
+import '../providers/category_provider.dart';
 import '../theme/language_provider.dart';
 import '../widgets/location_picker_map.dart';
-import '../data/properties_data.dart';
 
 class AddListingScreen extends StatefulWidget {
   const AddListingScreen({super.key});
@@ -44,8 +44,16 @@ class _AddListingScreenState extends State<AddListingScreen> {
   double? _latitude;
   double? _longitude;
 
-  final List<PropertyType> _categories = PropertiesData.propertyTypes;
-  final List<String> _facilityOptions = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<CategoryProvider>().fetchCategories();
+    });
+  }
+
+  final List<String> _facilityKeys = ['parking_lot', 'pet_allowed', 'garden', 'gym', 'park', 'home_theatre', 'kids_friendly', 'wifi'];
+  final List<String> _facilityValues = ['Parking Lot', 'Pet Allowed', 'Garden', 'Gym', 'Park', 'Home theatre', 'Kid\'s Friendly', 'WIFI'];
 
   void _toggleFacility(String facility) {
     setState(() {
@@ -305,7 +313,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Text(
-                          'Step $_currentStep of 5',
+                          context.tr('step_x_of_y').replaceFirst('%s', '$_currentStep').replaceFirst('%s', '5'),
                           style: TextStyle(
                             fontSize: 12,
                             color: theme.textTheme.bodyMedium?.color,
@@ -375,7 +383,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                                     ),
                                   )
                                 : Text(
-                                    _currentStep < 5 ? 'Next' : 'Submit for Review',
+                                    _currentStep < 5 ? context.tr('next') : context.tr('submit_for_review'),
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
@@ -446,7 +454,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Your listing has been\nsubmitted for review',
+                        context.tr('submitted_for_review'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,
@@ -457,7 +465,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Our team will review your property and publish it shortly. You can track its status in My Listings.',
+                        context.tr('submitted_review_desc'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -547,9 +555,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(text: 'Hi Mohamed, Fill detail of your\n'),
+              TextSpan(text: '${context.tr('fill_details_title')}\n'),
               TextSpan(
-                text: 'real estate',
+                text: context.tr('real_estate'),
                 style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
               ),
             ],
@@ -566,8 +574,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
         // Title Input
         Container(
           decoration: BoxDecoration(
-            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+            color: isDark ? DarkColors.backgroundSecondary : LightColors.card,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFE2E8F0)),
           ),
           child: TextFormField(
             initialValue: _title,
@@ -613,7 +622,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Rent',
+                    context.tr('for_rent'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -641,7 +650,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Sell',
+                    context.tr('for_sale'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -657,7 +666,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
         // Category
         Text(
-          'Property category',
+          context.tr('property_category'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -665,35 +674,50 @@ class _AddListingScreenState extends State<AddListingScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: _categories.map((catType) {
-            final isActive = _category == catType.value;
-            return GestureDetector(
-              onTap: () => setState(() {
-                _category = catType.value;
-                _categoryId = catType.id;
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFF0D5C63)
-                      : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Text(
-                  context.tr(catType.value) ?? catType.name,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: isActive ? AppColors.white : theme.textTheme.bodyLarge?.color,
+        Consumer<CategoryProvider>(
+          builder: (context, catProvider, _) {
+            if (catProvider.isLoading && catProvider.categories.isEmpty) {
+              return const Center(child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ));
+            }
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: catProvider.categories.map((cat) {
+                final catName = cat['name'] ?? '';
+                final catSlug = cat['slug'] ?? catName.toLowerCase();
+                final catId = cat['id'] ?? 0;
+                final isActive = _categoryId == catId;
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    _category = catSlug;
+                    _categoryId = catId;
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? const Color(0xFF0D5C63)
+                          : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Text(
+                      context.tr('category.$catSlug') != 'category.$catSlug' 
+                          ? context.tr('category.$catSlug') 
+                          : catName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: isActive ? AppColors.white : theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         ),
         const SizedBox(height: 40),
       ],
@@ -707,9 +731,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(text: 'Where is the '),
+              TextSpan(text: '${context.tr('where_is_location')} '),
               TextSpan(
-                text: 'location',
+                text: '${context.tr('location_question')}',
                 style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
               ),
               const TextSpan(text: '?'),
@@ -768,12 +792,12 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Text.rich(
           TextSpan(
             children: [
-              const TextSpan(text: 'Add '),
+              TextSpan(text: '${context.tr('add_photos_title')} '),
               TextSpan(
-                text: 'photos',
+                text: context.tr('photos_word'),
                 style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
               ),
-              const TextSpan(text: ' to your listing'),
+              TextSpan(text: ' ${context.tr('to_your_listing')}'),
             ],
           ),
           style: TextStyle(
@@ -841,8 +865,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   aspectRatio: 1,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+                      color: isDark ? DarkColors.backgroundSecondary : LightColors.card,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFE2E8F0)),
                     ),
                     alignment: Alignment.center,
                     child: Icon(Icons.add, size: 40, color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
@@ -865,10 +890,10 @@ class _AddListingScreenState extends State<AddListingScreen> {
           TextSpan(
             children: [
               TextSpan(
-                text: 'Almost finish',
+                text: context.tr('almost_finish'),
                 style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
               ),
-              const TextSpan(text: ', complete the listing'),
+              TextSpan(text: context.tr('complete_listing')),
             ],
           ),
           style: TextStyle(
@@ -882,7 +907,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
         // Price Label
         Text(
-          _listingType == 'Rent' ? 'Rent Price / Month' : 'Sell Price',
+          _listingType == 'Rent' ? context.tr('rent_price_month') : context.tr('sell_price'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -893,8 +918,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+            color: isDark ? DarkColors.backgroundSecondary : LightColors.card,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
@@ -936,7 +962,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
         // Area m²
         Text(
-          'Area (m²)',
+          context.tr('area_label'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -947,9 +973,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+            color: isDark ? DarkColors.backgroundSecondary : LightColors.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isDark ? DarkColors.border : LightColors.border),
+            border: Border.all(color: isDark ? DarkColors.border : const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
@@ -985,17 +1011,17 @@ class _AddListingScreenState extends State<AddListingScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildCounterRow('Bedroom', _bedrooms, (val) => setState(() => _bedrooms = val), theme, isDark),
-        _buildCounterRow('Bathroom', _bathrooms, (val) => setState(() => _bathrooms = val), theme, isDark),
-        _buildCounterRow('Balcony', _balcony, (val) => setState(() => _balcony = val), theme, isDark),
-        _buildCounterRow('Kitchen', _kitchens, (val) => setState(() => _kitchens = val), theme, isDark),
-        _buildCounterRow('Toilet', _toilets, (val) => setState(() => _toilets = val), theme, isDark),
-        _buildCounterRow('Living Room', _livingRooms, (val) => setState(() => _livingRooms = val), theme, isDark),
+        _buildCounterRow(context.tr('bedroom'), _bedrooms, (val) => setState(() => _bedrooms = val), theme, isDark),
+        _buildCounterRow(context.tr('bathroom'), _bathrooms, (val) => setState(() => _bathrooms = val), theme, isDark),
+        _buildCounterRow(context.tr('balcony'), _balcony, (val) => setState(() => _balcony = val), theme, isDark),
+        _buildCounterRow(context.tr('kitchen'), _kitchens, (val) => setState(() => _kitchens = val), theme, isDark),
+        _buildCounterRow(context.tr('toilet'), _toilets, (val) => setState(() => _toilets = val), theme, isDark),
+        _buildCounterRow(context.tr('living_room'), _livingRooms, (val) => setState(() => _livingRooms = val), theme, isDark),
         const SizedBox(height: 28),
 
         // Environment / Facilities
         Text(
-          'Environment / Facilities',
+          context.tr('environment_facilities'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -1006,20 +1032,24 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: _facilityOptions.map((facility) {
-            final isActive = _facilities.contains(facility);
+          children: _facilityKeys.asMap().entries.map((entry) {
+            final i = entry.key;
+            final key = entry.value;
+            final value = _facilityValues[i];
+            final isActive = _facilities.contains(value);
             return GestureDetector(
-              onTap: () => _toggleFacility(facility),
+              onTap: () => _toggleFacility(value),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 decoration: BoxDecoration(
                   color: isActive
                       ? const Color(0xFF0D5C63)
-                      : (isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary),
+                      : (isDark ? DarkColors.backgroundSecondary : LightColors.card),
                   borderRadius: BorderRadius.circular(20),
+                  border: isActive ? null : Border.all(color: isDark ? DarkColors.border : const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
-                  facility,
+                  context.tr(key),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1040,8 +1070,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary,
+        color: isDark ? DarkColors.backgroundSecondary : LightColors.card,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFE2E8F0)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1109,10 +1140,10 @@ class _AddListingScreenState extends State<AddListingScreen> {
           TextSpan(
             children: [
               TextSpan(
-                text: 'Review ',
+                text: '${context.tr('review_word')} ',
                 style: TextStyle(color: isDark ? const Color(0xFF1ABC9C) : AppColors.primary),
               ),
-              const TextSpan(text: 'your listing'),
+              TextSpan(text: context.tr('your_listing')),
             ],
           ),
           style: TextStyle(
@@ -1124,19 +1155,19 @@ class _AddListingScreenState extends State<AddListingScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Make sure everything looks good before publishing.',
+          context.tr('review_subtitle'),
           style: TextStyle(fontSize: 14, color: theme.textTheme.bodyMedium?.color),
         ),
         const SizedBox(height: 24),
-        _reviewItem(Icons.title, 'Title', _title, theme, isDark),
-        _reviewItem(Icons.category_outlined, 'Type', '$_listingType · $_category', theme, isDark),
-        _reviewItem(Icons.location_on_outlined, 'Location', _location, theme, isDark),
-        _reviewItem(Icons.photo_library_outlined, 'Photos', '${_photos.length} photo(s)', theme, isDark),
-        _reviewItem(Icons.attach_money, 'Price', '$_price MAD${_listingType == "Rent" ? "/mo" : ""}', theme, isDark),
-        _reviewItem(Icons.crop_square_outlined, 'Area', '$_area m²', theme, isDark),
-        _reviewItem(Icons.bed_outlined, 'Rooms', '$_bedrooms bed · $_bathrooms bath · $_balcony balcony · $_kitchens kitchen', theme, isDark),
+        _reviewItem(Icons.title, context.tr('title_label'), _title, theme, isDark),
+        _reviewItem(Icons.category_outlined, context.tr('type_label'), '${_listingType == 'Sell' ? context.tr('for_sale') : context.tr('for_rent')} · ${context.tr(_category) ?? _category}', theme, isDark),
+        _reviewItem(Icons.location_on_outlined, context.tr('location'), _location, theme, isDark),
+        _reviewItem(Icons.photo_library_outlined, context.tr('photos_label'), '${_photos.length} ${context.tr('photo_count')}', theme, isDark),
+        _reviewItem(Icons.attach_money, context.tr('price'), '$_price MAD${_listingType == "Rent" ? "/mo" : ""}', theme, isDark),
+        _reviewItem(Icons.crop_square_outlined, context.tr('area_label'), '$_area m²', theme, isDark),
+        _reviewItem(Icons.bed_outlined, context.tr('rooms'), '$_bedrooms ${context.tr('rooms_summary')} · $_bathrooms ${context.tr('bath_summary')} · $_balcony ${context.tr('balcony_summary')} · $_kitchens ${context.tr('kitchen_summary')}', theme, isDark),
         if (_facilities.isNotEmpty)
-          _reviewItem(Icons.local_parking_outlined, 'Facilities', _facilities.join(', '), theme, isDark),
+          _reviewItem(Icons.local_parking_outlined, context.tr('facilities_label'), _facilities.join(', '), theme, isDark),
         const SizedBox(height: 40),
       ],
     );

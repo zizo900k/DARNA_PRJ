@@ -264,7 +264,7 @@ class _FilterModalState extends State<FilterModal> {
                             ),
                           ),
                           child: Text(
-                            status.name,
+                            context.tr('status_${status.value}'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

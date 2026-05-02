@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../theme/language_provider.dart';
 import '../theme/auth_provider.dart';
 import '../services/profile_service.dart';
+import '../services/api_service.dart';
 import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   List<Map<String, dynamic>> _listings = [];
   bool _isLoading = true;
   Timer? _pollTimer;
+  bool _isListingsGrid = false;
 
   @override
   void initState() {
@@ -97,6 +99,48 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> _deleteListing(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.tr('delete_property') ?? 'Delete Property'),
+        content: Text(context.tr('delete_property_confirm') ?? 'Are you sure you want to permanently delete this property?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.tr('cancel') ?? 'Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text(context.tr('delete') ?? 'Delete', style: const TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+
+    try {
+      await ApiService.delete('/properties/$id');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('success') ?? 'Deleted successfully')));
+        _loadProfileData(); // Refresh list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error_prefix') ?? 'Error: '}$e')));
+      }
+    }
+  }
+
+  Future<void> _toggleVisibility(int id, String currentStatus) async {
+    try {
+      final res = await ApiService.put('/properties/$id/toggle-visibility');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('status_updated'))));
+        _loadProfileData(); // Refresh list
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('error_prefix') ?? 'Error: '}$e')));
+      }
+    }
+  }
+
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -109,9 +153,12 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'published':
+      case 'available':
         return Colors.green;
       case 'rejected':
         return Colors.red;
+      case 'hidden':
+        return Colors.grey;
       case 'pending':
       default:
         return Colors.orange;
@@ -288,18 +335,25 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
               Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DarkColors.backgroundSecondary
-                          : LightColors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(20),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isListingsGrid = !_isListingsGrid;
+                      });
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? DarkColors.backgroundSecondary
+                            : LightColors.backgroundSecondary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(_isListingsGrid ? Icons.view_list : Icons.grid_view,
+                          size: 20, color: theme.textTheme.bodyLarge?.color),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(Icons.grid_view,
-                        size: 20, color: theme.textTheme.bodyLarge?.color),
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
@@ -331,210 +385,264 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               child: Center(child: Text(context.tr('no_listings_found'))),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _listings.map((listing) {
-                  return Container(
-                    width: 200,
-                    padding: EdgeInsets.only(
-                      right: listing == _listings.last ? 0 : 16,
+            _isListingsGrid
+                ? Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: _listings.map((listing) => SizedBox(
+                      width: (MediaQuery.of(context).size.width - 48 - 16) / 2,
+                      child: _buildListingCard(listing, theme, isGrid: true),
+                    )).toList(),
+                  )
+                : SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: _listings.map((listing) {
+                        return _buildListingCard(listing, theme, isGrid: false, isLast: listing == _listings.last);
+                      }).toList(),
                     ),
-                    child: GestureDetector(
-                      onTap: () => context.push('/property/${listing['id']}'),
-                      child: Column(
+                  ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListingCard(Map<String, dynamic> listing, ThemeData theme, {bool isGrid = false, bool isLast = false}) {
+    return Container(
+      width: isGrid ? null : 200,
+      padding: EdgeInsets.only(
+        right: isGrid ? 0 : (isLast ? 0 : 16),
+      ),
+      child: GestureDetector(
+        onTap: () => context.push('/property/${listing['id']}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    (() {
+                      if (listing['photos'] is List && (listing['photos'] as List).isNotEmpty) {
+                        final photo = (listing['photos'] as List).first;
+                        if (photo is Map) return photo['full_url'] as String? ?? photo['url'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                      }
+                      return (listing['full_url'] as String?) ?? (listing['image'] as String?) ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
+                    })(),
+                    width: double.infinity,
+                    height: isGrid ? 100 : 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: isGrid ? 100 : 140,
+                      width: double.infinity,
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      child: const Icon(Icons.image_not_supported),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: GestureDetector(
+                    onTap: () async {
+                      await context.push(
+                        '/updateListing/${listing['id']}',
+                        extra: listing,
+                      );
+                      _loadProfileData();
+                    },
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryDark],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.edit,
+                          size: 14, color: Colors.white),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(listing['status'] as String?),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      context.tr('status_${listing['status'] ?? 'pending'}').toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1ABC9C),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                              text: 'MAD ${listing['price_per_month'] ?? listing['price'] ?? 'N/A'} '),
+                          TextSpan(
+                            text: listing['type'] == 'rent' ? '/mo' : '',
+                            style: const TextStyle(fontSize: 9),
+                          ),
+                        ],
+                      ),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (listing['title'] ?? context.tr('no_title')) as String,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star,
+                          size: 10, color: Color(0xFFFFC107)),
+                      const SizedBox(width: 4),
+                      Text(
+                        (listing['rating'] ?? 0).toString(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: theme.textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(Icons.location_on,
+                          size: 10,
+                          color: theme.textTheme.bodyMedium?.color),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          (listing['location'] ?? context.tr('unknown_location')) as String,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: theme.textTheme.bodyMedium?.color,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (listing['status'] == 'rejected' && listing['rejection_reason'] != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  (() {
-                                    if (listing['photos'] is List && (listing['photos'] as List).isNotEmpty) {
-                                      final photo = (listing['photos'] as List).first;
-                                      if (photo is Map) return photo['full_url'] as String? ?? photo['url'] as String? ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
-                                    }
-                                    return (listing['full_url'] as String?) ?? (listing['image'] as String?) ?? 'https://placehold.co/800x600/20B2AA/FFFFFF/png?text=Darna+Image';
-                                  })(),
-                                  width: double.infinity,
-                                  height: 140,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    height: 140,
-                                    width: double.infinity,
-                                    color: Colors.grey.withValues(alpha: 0.2),
-                                    child: const Icon(Icons.image_not_supported),
-                                  ),
-                                ),
+                          const Icon(Icons.info_outline, color: Colors.red, size: 12),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              listing['rejection_reason'] as String,
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.red,
+                                height: 1.2,
                               ),
-                              Positioned(
-                                top: 12,
-                                left: 12,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    await context.push(
-                                      '/updateListing/${listing['id']}',
-                                      extra: listing,
-                                    );
-                                    _loadProfileData();
-                                  },
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: const LinearGradient(
-                                        colors: [AppColors.primary, AppColors.primaryDark],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: const Icon(Icons.edit,
-                                        size: 16, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: _getStatusColor(listing['status'] as String?),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    (listing['status'] as String? ?? 'pending').toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 12,
-                                left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1ABC9C),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text.rich(
-                                    TextSpan(
-                                      children: [
-                                        TextSpan(
-                                            text: 'MAD ${listing['price_per_month'] ?? listing['price'] ?? 'N/A'} '),
-                                        TextSpan(
-                                          text: listing['type'] == 'rent' ? '/mo' : '',
-                                          style: const TextStyle(fontSize: 10),
-                                        ),
-                                      ],
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  (listing['title'] ?? 'No title') as String,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.star,
-                                        size: 12, color: Color(0xFFFFC107)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      (listing['rating'] ?? 0).toString(),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.textTheme.bodyLarge?.color,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(Icons.location_on,
-                                        size: 12,
-                                        color: theme.textTheme.bodyMedium?.color),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        (listing['location'] ?? 'Unknown location') as String,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color:
-                                              theme.textTheme.bodyMedium?.color,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (listing['status'] == 'rejected' && listing['rejection_reason'] != null) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Icon(Icons.info_outline, color: Colors.red, size: 14),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: Text(
-                                            listing['rejection_reason'] as String,
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.red,
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                }).toList(),
+                  ],
+                ],
               ),
             ),
-        ],
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _toggleVisibility(listing['id'], listing['status']),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 26),
+                        side: BorderSide(color: listing['status'] == 'hidden' ? Colors.green : Colors.orange),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      child: Text(
+                        listing['status'] == 'hidden' ? (context.tr('enable') ?? 'Enable') : (context.tr('disable') ?? 'Disable'),
+                        style: TextStyle(fontSize: 9, color: listing['status'] == 'hidden' ? Colors.green : Colors.orange),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _deleteListing(listing['id']),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 26),
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      child: Text(
+                        context.tr('delete') ?? 'Delete',
+                        style: const TextStyle(fontSize: 9, color: Colors.red),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -651,7 +759,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                           Stack(
                             children: [
                               UserAvatar(
-                                name: (user?['full_name'] ?? user?['name'] ?? 'User').toString(),
+                                name: (user?['full_name'] ?? user?['name'] ?? context.tr('user')).toString(),
                                 imageUrl: (user?['full_avatar_url'] ?? user?['avatar'])?.toString(),
                                 size: 100,
                               ),
@@ -687,7 +795,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            (user?['full_name'] as String?) ?? (user?['name'] as String?) ?? 'User',
+                            (user?['full_name'] as String?) ?? (user?['name'] as String?) ?? context.tr('user'),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
@@ -753,7 +861,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                                   child: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
                                 ),
                                 title: Text(
-                                  'Admin Dashboard',
+                                  context.tr('admin_dashboard') ?? 'Admin Dashboard',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: theme.textTheme.bodyLarge?.color,
@@ -812,7 +920,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                                 ),
                               ),
                               content: Text(
-                                'Are you sure you want to logout?',
+                                context.tr('logout_confirm'),
                                 style: TextStyle(
                                     color: theme.textTheme.bodyMedium?.color),
                               ),
@@ -820,7 +928,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                                 TextButton(
                                   onPressed: () => Navigator.pop(context),
                                   child: Text(
-                                    'Cancel',
+                                    context.tr('cancel'),
                                     style: TextStyle(
                                         color:
                                             theme.textTheme.bodyMedium?.color),
@@ -890,15 +998,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         decoration: BoxDecoration(
           color: isDark ? DarkColors.card : LightColors.card,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
+          border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+          boxShadow: isDark ? [
             BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : const Color(0xFF0F172A).withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
-          ],
+          ] : [],
         ),
         child: Column(
           children: [

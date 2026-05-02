@@ -144,7 +144,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     final propLat = double.tryParse(_property['latitude']?.toString() ?? '');
     final propLng = double.tryParse(_property['longitude']?.toString() ?? '');
     if (propLat == null || propLng == null) {
-      if (mounted) setState(() { _userDistance = 'Location not set'; _userDuration = ''; });
+      if (mounted) setState(() { _userDistance = context.tr('location_not_set'); _userDuration = ''; });
       return;
     }
     try {
@@ -153,7 +153,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        if (mounted) setState(() { _userDistance = 'Enable location'; _userDuration = 'to see distance'; });
+        if (mounted) setState(() { _userDistance = context.tr('enable_location'); _userDuration = context.tr('to_see_distance'); });
         return;
       }
       final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
@@ -180,8 +180,8 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   ? '${distMeters.round()} m'
                   : '${distKm.toStringAsFixed(1)} km';
               _userDuration = mins < 60
-                  ? '$mins min drive'
-                  : '${(mins / 60).floor()}h ${mins % 60}min drive';
+                  ? '$mins ${context.tr('min_drive')}'
+                  : '${(mins / 60).floor()}h ${mins % 60}min ${context.tr('min_drive')}';
             });
           }
           return;
@@ -193,12 +193,12 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       if (mounted) {
         setState(() {
           _userDistance = dist < 1 ? '${(dist * 1000).round()} m' : '~${dist.toStringAsFixed(1)} km';
-          _userDuration = driveMins < 60 ? '~$driveMins min drive' : '~${(driveMins / 60).toStringAsFixed(1)} h drive';
+          _userDuration = driveMins < 60 ? '~$driveMins ${context.tr('min_drive')}' : '~${(driveMins / 60).toStringAsFixed(1)} ${context.tr('h_drive')}';
         });
       }
     } catch (e) {
       debugPrint('Distance calc error: $e');
-      if (mounted) setState(() { _userDistance = 'Tap for directions'; _userDuration = ''; });
+      if (mounted) setState(() { _userDistance = context.tr('tap_for_directions'); _userDuration = ''; });
     }
   }
 
@@ -230,7 +230,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$feature (Coming Soon)'),
+        content: Text('$feature (${context.tr('coming_soon_feature')})'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -283,7 +283,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr('request_visit') ?? 'Demander une visite',
+                      context.tr('request_visit'),
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
@@ -291,7 +291,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                     DropdownButtonFormField<String>(
                       value: requestType,
                       decoration: InputDecoration(
-                        labelText: context.tr('request_type') ?? 'Type de demande',
+                        labelText: context.tr('request_type'),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -363,7 +363,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                         ),
                         onPressed: () => Navigator.pop(ctx, true),
                         child: Text(
-                          context.tr('submit_request') ?? 'Envoyer la demande',
+                          context.tr('submit_request'),
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -435,7 +435,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     if (ownerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(langProvider.translate('error') + 'Owner not found')),
+            content: Text(langProvider.translate('error') + ': ' + context.tr('owner_not_found'))),
       );
       return;
     }
@@ -740,13 +740,13 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
           'avatar': 'https://ui-avatars.com/api/?name=Unknown+Agent',
           'role': 'Property Owner',
         };
-    final agentName = agent['name'] ?? agent['full_name'] ?? 'Unknown Agent';
+    final agentName = agent['name'] ?? agent['full_name'] ?? context.tr('unknown_agent');
     final agentAvatar =
         agent['full_avatar_url'] ?? agent['profile_picture'] ?? agent['avatar'];
 
-    final agentRole = agent['role'] ?? 'Property Owner';
+    final agentRole = agent['role'] ?? context.tr('property_owner');
     final propertyAddress =
-        _property['address'] ?? _property['location'] ?? 'Unknown location';
+        _property['address'] ?? _property['location'] ?? context.tr('unknown_location');
 
     final facilities = (_property['facilities'] as List?) ?? [];
     final reviews = (_property['reviews'] as List?) ?? [];
@@ -928,7 +928,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _property['title']?.toString() ?? 'Property',
+                                _property['title']?.toString() ?? context.tr('property'),
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
@@ -949,7 +949,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                   Expanded(
                                     child: Text(
                                       _property['location']?.toString() ??
-                                          'Location',
+                                          context.tr('location'),
                                       style: TextStyle(
                                         fontSize: 13,
                                         color:
@@ -1007,8 +1007,10 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                         const SizedBox(width: 6),
                         Text(
                           _property['category'] != null
-                              ? _property['category']['name']
-                              : (_property['type']?.toString() ?? 'Property'),
+                              ? ((_property['category']['slug'] != null && context.tr('category.${_property['category']['slug']}') != 'category.${_property['category']['slug']}') 
+                                  ? context.tr('category.${_property['category']['slug']}')
+                                  : _property['category']['name'])
+                              : (_property['type']?.toString() ?? context.tr('property')),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -1042,13 +1044,14 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                             ? DarkColors.backgroundSecondary
                             : LightColors.backgroundSecondary,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
+                        border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                        boxShadow: isDark ? [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
-                        ],
+                        ] : [],
                       ),
                       child: Row(
                         children: [
@@ -1255,7 +1258,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                     size: 18, color: AppColors.primary),
                                 const SizedBox(width: 12),
                                 Text(
-                                  _userDistance ?? 'Calculating...',
+                                  _userDistance ?? context.tr('calculating'),
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -1388,71 +1391,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                       ),
                     ),
 
-                  // Cost of Living Section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24)
-                        .copyWith(bottom: 28),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              context.tr('cost_of_living'),
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            Text(
-                              context.tr('see_details'),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? DarkColors.backgroundSecondary
-                                : LightColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_property['cost']?['rent'] ?? _property['price'] ?? 0} ${context.tr('mad')} /${context.tr('month')}',
-                                textDirection: ui.TextDirection.ltr,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _property['cost']?['description']?.toString() ??
-                                    context.tr('cost_desc_not_avail'),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+
 
                   // Reviews
                   if (reviews.isNotEmpty ||
@@ -1676,15 +1615,7 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                     color: isDark
                                         ? Colors.white.withValues(alpha: 0.05)
                                         : Colors.black.withValues(alpha: 0.03)),
-                                boxShadow: [
-                                  if (!isDark)
-                                    BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.03),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    )
-                                ],
+                                boxShadow: [],
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1811,14 +1742,15 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
                                 margin: const EdgeInsets.only(right: 12),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
+                                  border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                                  boxShadow: isDark ? [
                                     BoxShadow(
                                       color:
-                                          Colors.black.withValues(alpha: 0.1),
+                                          Colors.black.withValues(alpha: 0.2),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
-                                  ],
+                                  ] : [],
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: CachedNetworkImage(
@@ -1849,13 +1781,14 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        boxShadow: [
+        border: isDark ? null : const Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1.0)),
+        boxShadow: isDark ? [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
-        ],
+        ] : [],
       ),
       child: SafeArea(
         child: SizedBox(
@@ -1899,10 +1832,11 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
       decoration: BoxDecoration(
         color: isDark
             ? DarkColors.backgroundSecondary
-            : LightColors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(12),
+            : LightColors.card,
+        borderRadius: BorderRadius.circular(16),
         border:
-            Border.all(color: isDark ? DarkColors.border : LightColors.border),
+            Border.all(color: isDark ? DarkColors.border : const Color(0xFFE2E8F0)),
+        boxShadow: [],
       ),
       child: Row(
         children: [

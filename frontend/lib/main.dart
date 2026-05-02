@@ -9,6 +9,7 @@ import 'providers/property_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/call_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/category_provider.dart';
 import 'navigation/app_router.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -35,6 +36,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PropertyProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider.value(value: CallProvider.instance),
       ],
       child: const DarnaApp(),

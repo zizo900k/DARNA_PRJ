@@ -139,9 +139,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         builder: (ctx) => AlertDialog(
           backgroundColor: Theme.of(ctx).scaffoldBackgroundColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Error',
-            style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+          title: Text(
+            context.tr('error'),
+            style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
           ),
           content: Text(
             errorMessage,
@@ -228,7 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   return Image.network(_avatarFile!.path, fit: BoxFit.cover);
                                 }
                                 return UserAvatar(
-                                  name: (user?['full_name'] ?? user?['name'] ?? 'User').toString(),
+                                  name: (user?['full_name'] ?? user?['name'] ?? context.tr('user')).toString(),
                                   imageUrl: (user?['full_avatar_url'] ?? user?['avatar'])?.toString(),
                                   size: 120,
                                 );
@@ -471,10 +471,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           languageProvider.setLanguage(newValue);
         }
       },
-      items: const [
-        DropdownMenuItem(value: 'en', child: Text('English', style: TextStyle(fontSize: 14))),
-        DropdownMenuItem(value: 'fr', child: Text('Français', style: TextStyle(fontSize: 14))),
-        DropdownMenuItem(value: 'ar', child: Text('العربية', style: TextStyle(fontSize: 14))),
+      items: [
+        DropdownMenuItem(value: 'en', child: Text(context.tr('language_english'), style: const TextStyle(fontSize: 14))),
+        DropdownMenuItem(value: 'fr', child: Text(context.tr('language_french'), style: const TextStyle(fontSize: 14))),
+        const DropdownMenuItem(value: 'ar', child: Text('العربية', style: TextStyle(fontSize: 14))),
       ],
     );
   }

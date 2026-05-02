@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class CategoryPill extends StatelessWidget {
@@ -21,8 +21,8 @@ class CategoryPill extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final inactiveBgColor = isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary;
-    final borderColor = isDark ? DarkColors.border : LightColors.border;
+    final inactiveBgColor = isDark ? DarkColors.backgroundSecondary : Colors.white;
+    final borderColor = isDark ? DarkColors.border : const Color(0xFFE2E8F0);
     final textSecondaryColor = isDark ? DarkColors.textSecondary : LightColors.textSecondary;
 
     return Container(
@@ -39,10 +39,9 @@ class CategoryPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: isActive
             ? null
-            : Border.all(
-                color: borderColor,
-                width: 1,
-              ),
+            : isDark
+                ? Border.all(color: borderColor, width: 1)
+                : Border.all(color: borderColor, width: 1.5), // Crisp stroke for light mode
       ),
       child: Material(
         color: Colors.transparent,

@@ -5,6 +5,7 @@ import '../data/properties_data.dart';
 class PropertyProvider with ChangeNotifier {
   List<Property> _featuredProperties = [];
   List<Property> _rentalProperties = [];
+  List<Property> _saleProperties = [];
   List<Property> _recentProperties = [];
   List<Property> _guestProperties = [];
   
@@ -13,24 +14,28 @@ class PropertyProvider with ChangeNotifier {
 
   List<Property> get featuredProperties => List.unmodifiable(_featuredProperties);
   List<Property> get rentalProperties => List.unmodifiable(_rentalProperties);
+  List<Property> get saleProperties => List.unmodifiable(_saleProperties);
   List<Property> get recentProperties => List.unmodifiable(_recentProperties);
   List<Property> get guestProperties => List.unmodifiable(_guestProperties);
   
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> loadHomeScreenData() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> loadHomeScreenData({bool silent = false}) async {
+    if (!silent) {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+    }
 
     try {
-      // Load featured, rental, and all recent properties concurrently
+      // Load featured, rental, sale, and all recent properties concurrently
       final featuredFuture = PropertyService.getProperties(filters: {'featured': true});
-      final rentalFuture = PropertyService.getProperties(filters: {'listing_type': 'rent'});
+      final rentalFuture = PropertyService.getProperties(filters: {'type': 'rent'});
+      final saleFuture = PropertyService.getProperties(filters: {'type': 'sale'});
       final recentFuture = PropertyService.getProperties();
 
-      final results = await Future.wait([featuredFuture, rentalFuture, recentFuture]);
+      final results = await Future.wait([featuredFuture, rentalFuture, saleFuture, recentFuture]);
       
       final featuredData = List<Map<String, dynamic>>.from(results[0]['data'] ?? []);
       _featuredProperties = featuredData.map((e) => Property.fromJson(e)).toList();
@@ -38,12 +43,15 @@ class PropertyProvider with ChangeNotifier {
       final rentalData = List<Map<String, dynamic>>.from(results[1]['data'] ?? []);
       _rentalProperties = rentalData.map((e) => Property.fromJson(e)).toList();
 
-      final recentData = List<Map<String, dynamic>>.from(results[2]['data'] ?? []);
+      final saleData = List<Map<String, dynamic>>.from(results[2]['data'] ?? []);
+      _saleProperties = saleData.map((e) => Property.fromJson(e)).toList();
+
+      final recentData = List<Map<String, dynamic>>.from(results[3]['data'] ?? []);
       _recentProperties = recentData.map((e) => Property.fromJson(e)).toList();
     } catch (e) {
-      _error = e.toString();
+      if (!silent) _error = e.toString();
     } finally {
-      _isLoading = false;
+      if (!silent) _isLoading = false;
       notifyListeners();
     }
   }

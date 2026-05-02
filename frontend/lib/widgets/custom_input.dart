@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class CustomInput extends StatefulWidget {
@@ -66,8 +66,9 @@ class _CustomInputState extends State<CustomInput> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final bgColor = isDark ? DarkColors.backgroundSecondary : LightColors.backgroundSecondary;
-    final borderColor = _isFocused ? AppColors.primary : Colors.transparent;
+    final bgColor = isDark ? DarkColors.backgroundSecondary : LightColors.card;
+    final defaultBorderColor = isDark ? Colors.transparent : const Color(0xFFE2E8F0);
+    final borderColor = _isFocused ? AppColors.primary : defaultBorderColor;
     final iconColor = _isFocused ? AppColors.primary : (isDark ? DarkColors.textSecondary : LightColors.textSecondary);
     final focusBgColor = isDark ? DarkColors.card : LightColors.card;
 
@@ -79,7 +80,7 @@ class _CustomInputState extends State<CustomInput> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: borderColor,
-          width: 2,
+          width: _isFocused ? 2 : 1,
         ),
       ),
       child: Row(

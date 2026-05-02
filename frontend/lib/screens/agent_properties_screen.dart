@@ -156,7 +156,7 @@ class _AgentPropertiesScreenState extends State<AgentPropertiesScreen> {
                   : _properties.isEmpty
                       ? Center(
                           child: Text(
-                            context.tr('no_properties_found') ?? 'No properties found',
+                            context.tr('no_properties_found'),
                             style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                           ),
                         )
@@ -220,7 +220,7 @@ class _AgentPropertiesScreenState extends State<AgentPropertiesScreen> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  prop['title'] ?? 'Property',
+                                                  prop['title'] ?? context.tr('property'),
                                                   style: TextStyle(
                                                     fontSize: 16, fontWeight: FontWeight.bold,
                                                     color: theme.textTheme.bodyLarge?.color,

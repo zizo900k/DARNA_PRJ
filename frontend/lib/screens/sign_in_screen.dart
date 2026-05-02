@@ -42,7 +42,7 @@ class _SignInScreenState extends State<SignInScreen> {
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.redAccent));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${context.tr('verification_failed')}$e'), backgroundColor: Colors.redAccent));
             }
           }
         }
@@ -117,7 +117,7 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Google Sign-In failed: ${e.toString()}'),
+            content: Text('${context.tr('google_signin_failed')}${e.toString()}'),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 3),
           ),
@@ -209,10 +209,10 @@ class _SignInScreenState extends State<SignInScreen> {
                                   languageProvider.setLanguage(newValue);
                                 }
                               },
-                              items: const [
-                                DropdownMenuItem(value: 'en', child: Text('English')),
-                                DropdownMenuItem(value: 'fr', child: Text('Français')),
-                                DropdownMenuItem(value: 'ar', child: Text('العربية')),
+                              items: [
+                                DropdownMenuItem(value: 'en', child: Text(context.tr('language_english'))),
+                                DropdownMenuItem(value: 'fr', child: Text(context.tr('language_french'))),
+                                const DropdownMenuItem(value: 'ar', child: Text('العربية')),
                               ],
                             ),
                           ),

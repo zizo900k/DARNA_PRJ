@@ -56,13 +56,27 @@ class PropertyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark 
+            ? null 
+            : Border.all(
+                color: const Color(0xFFE2E8F0), // Clean stroke
+                width: 1.5, // Slightly thicker for sharpness
+              ),
+        boxShadow: isDark 
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.02), // Very subtle, sharp shadow
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -115,39 +129,61 @@ class PropertyCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Featured Badge
-                  if (property.featured)
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star, size: 12, color: AppColors.white),
-                            SizedBox(width: 4),
-                            Text(
-                              'Featured',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.white,
-                                letterSpacing: 0.3,
+                  // Badges (Featured + Type)
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Row(
+                      children: [
+                        if (property.featured) ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
                             ),
-                          ],
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.star_rounded, size: 14, color: AppColors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Featured',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.white,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          child: Text(
+                            property.type.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
+                  ),
                   // Favorite Button
                   Positioned(
                     top: 12,
@@ -216,25 +252,49 @@ class PropertyCard extends StatelessWidget {
               ),
               // Content
               Padding(
-                padding: const EdgeInsets.all(14.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      property.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: theme.textTheme.bodyLarge?.color,
-                        letterSpacing: -0.2,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            property.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: theme.textTheme.bodyLarge?.color,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                        ),
+                        if (showRating && property.rating > 0) ...[
+                          const SizedBox(width: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFFC107)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${property.rating}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.textTheme.bodyLarge?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                        Icon(Icons.location_on_outlined, size: 14, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -244,51 +304,34 @@ class PropertyCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: theme.textTheme.bodyMedium?.color,
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         if (property.bedrooms > 0) ...[
-                          Icon(Icons.bed_outlined, size: 14, color: theme.textTheme.bodyMedium?.color),
+                          Icon(Icons.bed_outlined, size: 16, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                           const SizedBox(width: 4),
-                          Text('${property.bedrooms}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color)),
-                          const SizedBox(width: 12),
+                          Text('${property.bedrooms}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8))),
+                          const SizedBox(width: 16),
                         ],
                         if (property.bathrooms > 0) ...[
-                          Icon(Icons.water_drop_outlined, size: 14, color: theme.textTheme.bodyMedium?.color),
+                          Icon(Icons.water_drop_outlined, size: 16, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                           const SizedBox(width: 4),
-                          Text('${property.bathrooms}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color)),
-                          const SizedBox(width: 12),
+                          Text('${property.bathrooms}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8))),
+                          const SizedBox(width: 16),
                         ],
                         if (property.area > 0) ...[
-                          Icon(Icons.square_foot_outlined, size: 14, color: theme.textTheme.bodyMedium?.color),
+                          Icon(Icons.square_foot_outlined, size: 16, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6)),
                           const SizedBox(width: 4),
-                          Text('${property.area} mآ²', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color)),
+                          Text('${property.area} m²', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8))),
                         ],
                       ],
                     ),
-                    if (showRating && property.rating > 0) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 14, color: Color(0xFFFFC107)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${property.rating}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: theme.textTheme.bodyLarge?.color,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),

@@ -19,14 +19,14 @@ class AppColors {
 }
 
 class LightColors {
-  // Tinted neutrals for light theme
-  static const Color background = Color(0xFFF8FAFC); // Slate 50
+  // Soft, premium elegant light theme neutrals
+  static const Color background = Color(0xFFF8FAFC); // Very subtle slate 50
   static const Color backgroundSecondary = Color(0xFFF1F5F9); // Slate 100
-  static const Color card = Color(0xFFFFFFFF); // Pure white cards on slate
+  static const Color card = Color(0xFFFFFFFF); // Pure white, relies on elegant shadows
 
-  static const Color textPrimary = Color(0xFF0F172A); // Slate 900
+  static const Color textPrimary = Color(0xFF0F172A); // Very dark slate (readable but soft)
   static const Color textSecondary = Color(0xFF475569); // Slate 600
-  static const Color textTertiary = Color(0xFF94A3B8); // Slate 400
+  static const Color textTertiary = Color(0xFF64748B); // Slate 500 (improved contrast from 400)
 
   static const Color border = Color(0xFFE2E8F0); // Slate 200
   static const Color divider = Color(0xFFCBD5E1); // Slate 300
@@ -93,10 +93,10 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: LightColors.background,
+        backgroundColor: LightColors.card,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: LightColors.textTertiary,
-        elevation: 10,
+        elevation: 0,
       ),
       useMaterial3: true,
     );

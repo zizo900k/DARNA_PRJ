@@ -248,6 +248,27 @@ class PropertyController extends Controller
         return response()->json(['message' => 'Property deleted successfully']);
     }
 
+    /**
+     * Toggle visibility (hide/publish) of the specified property.
+     */
+    public function toggleVisibility(Request $request, Property $property)
+    {
+        // Only the owner can toggle
+        if ($property->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized. You do not own this property.'], 403);
+        }
+
+        if ($property->status === 'published') {
+            $property->update(['status' => 'hidden']);
+            return response()->json(['message' => 'Property hidden successfully', 'status' => 'hidden']);
+        } elseif ($property->status === 'hidden') {
+            $property->update(['status' => 'published']);
+            return response()->json(['message' => 'Property published successfully', 'status' => 'published']);
+        }
+
+        return response()->json(['message' => 'Cannot toggle visibility for property with status: ' . $property->status], 400);
+    }
+
     public function nearby(Request $request, $id)
     {
         $property = Property::findOrFail($id);

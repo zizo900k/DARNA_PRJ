@@ -61,13 +61,13 @@ class _RequestsScreenState extends State<RequestsScreen>
       await _loadRequests(); // Reload to refresh UI
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Request $status successfully')),
+          SnackBar(content: Text(context.tr('request_updated_success'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update request status')),
+          SnackBar(content: Text(context.tr('failed_to_update_request_status'))),
         );
       }
     }
@@ -127,7 +127,7 @@ class _RequestsScreenState extends State<RequestsScreen>
             Icon(Icons.inbox_outlined, size: 64, color: Theme.of(context).dividerColor),
             const SizedBox(height: 16),
             Text(
-              context.tr('no_requests') ?? 'No requests found',
+              context.tr('no_requests'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -159,7 +159,7 @@ class _RequestsScreenState extends State<RequestsScreen>
           try {
             final parsedDate = DateTime.parse(dateStr);
             dateTime = DateFormat.yMMMd().format(parsedDate);
-            if (timeStr != null) dateTime += ' at $timeStr';
+            if (timeStr != null) dateTime += ' ${context.tr('at_time')} $timeStr';
           } catch (_) {
             dateTime = dateStr;
           }
@@ -171,13 +171,14 @@ class _RequestsScreenState extends State<RequestsScreen>
           decoration: BoxDecoration(
             color: isDark ? DarkColors.card : LightColors.card,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
+            border: isDark ? null : Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+            boxShadow: isDark ? [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
-            ],
+            ] : [],
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -207,7 +208,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          property?['title'] ?? 'Unknown Property',
+                          property?['title'] ?? context.tr('unknown_property'),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -221,7 +222,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                             _buildStatusBadge(status),
                             const SizedBox(width: 8),
                             Text(
-                              requestType.replaceAll('_', ' ').toUpperCase(),
+                              context.tr('request_type_$requestType').toUpperCase(),
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -247,7 +248,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                     children: [
                       const Icon(Icons.person_outline, size: 16),
                       const SizedBox(width: 8),
-                      Text('From: ${sender['name'] ?? sender['full_name'] ?? 'User'}'),
+                      Text('${context.tr('from')}${sender['name'] ?? sender['full_name'] ?? context.tr('user')}'),
                     ],
                   ),
                 ),
@@ -258,7 +259,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                     children: [
                       const Icon(Icons.person_outline, size: 16),
                       const SizedBox(width: 8),
-                      Text('To: ${owner['name'] ?? owner['full_name'] ?? 'User'}'),
+                      Text('${context.tr('to')}${owner['name'] ?? owner['full_name'] ?? context.tr('user')}'),
                     ],
                   ),
                 ),
@@ -366,7 +367,7 @@ class _RequestsScreenState extends State<RequestsScreen>
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
-        status.toUpperCase(),
+        context.tr('status_$status').toUpperCase(),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
