@@ -21,7 +21,6 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
-  late TextEditingController _emailController;
   bool _googleLinked = true;
   bool _facebookLinked = false;
   
@@ -37,19 +36,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (user != null) {
         setState(() {
           _nameController.text = (user['full_name'] ?? user['name'] ?? '').toString();
-          _emailController.text = (user['email'] ?? '').toString();
         });
       }
     });
     
     _nameController = TextEditingController();
-    _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
@@ -94,7 +90,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final updates = {
         'full_name': _nameController.text,
         'name': _nameController.text,
-        'email': _emailController.text,
       };
       
       await ProfileService.updateProfile(updates);
@@ -284,16 +279,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             theme: theme,
                             isDark: isDark,
                           ),
-                          const SizedBox(height: 16),
 
-                          _buildInputField(
-                            controller: _emailController,
-                            placeholder: context.tr('email'),
-                            icon: Icons.mail_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                            theme: theme,
-                            isDark: isDark,
-                          ),
                           
                           const SizedBox(height: 32),
 

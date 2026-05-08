@@ -109,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/properties/{id}', [App\Http\Controllers\Api\AdminPropertyController::class, 'show']);
     Route::put('/admin/properties/{id}/approve', [App\Http\Controllers\Api\AdminPropertyController::class, 'approve']);
     Route::put('/admin/properties/{id}/reject', [App\Http\Controllers\Api\AdminPropertyController::class, 'reject']);
+    Route::put('/admin/properties/{id}/toggle-featured', [App\Http\Controllers\Api\AdminPropertyController::class, 'toggleFeatured']);
 
     // Admin-only: Category management
     Route::post('/categories',              [CategoryController::class, 'store']);

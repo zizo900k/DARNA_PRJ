@@ -6,6 +6,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/get-users-temp', function () {
+    return \App\Models\User::select('name', 'email', 'role')->get();
+});
+
 Route::match(['GET', 'OPTIONS'], '/proxy/storage/{path}', function ($path) {
     if (request()->isMethod('OPTIONS')) {
         return response('', 204)->withHeaders([

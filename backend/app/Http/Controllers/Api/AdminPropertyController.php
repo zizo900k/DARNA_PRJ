@@ -126,4 +126,23 @@ class AdminPropertyController extends Controller
             'rejected' => $rejected,
         ]);
     }
+
+    /**
+     * Toggle featured status of a property.
+     */
+    public function toggleFeatured(Request $request, $id)
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $property = Property::findOrFail($id);
+        $property->featured = !$property->featured;
+        $property->save();
+
+        return response()->json([
+            'message' => 'Property featured status updated.',
+            'property' => $property
+        ]);
+    }
 }

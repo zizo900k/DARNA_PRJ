@@ -243,6 +243,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     }
   }
 
+  Future<void> _toggleFeatured(int id) async {
+    try {
+      await AdminService.toggleFeatured(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تحديث حالة التميز بنجاح', style: TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${context.tr('error_prefix')}$e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -498,6 +519,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final price = prop['price'] ?? prop['price_per_month'];
     final type = prop['type'] as String? ?? '';
     final id = prop['id'] as int? ?? 0;
+    final isFeatured = prop['featured'] == true || prop['featured'] == 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -745,6 +767,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     ],
                   ),
                 ],
+                if (status == 'published') ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => context.push('/property/$id'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? DarkColors.backgroundSecondary
+                                  : LightColors.backgroundSecondary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(context.tr('view'),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.textTheme.bodyLarge?.color)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _toggleFeatured(id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isFeatured ? Colors.orange.withValues(alpha: 0.1) : AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isFeatured ? Colors.orange : AppColors.primary),
+                            ),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(isFeatured ? Icons.star : Icons.star_border, size: 14, color: isFeatured ? Colors.orange : AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(isFeatured ? 'إزالة التميز' : 'جعله مميزاً',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: isFeatured ? Colors.orange : AppColors.primary)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -781,9 +857,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     if (price == null) return '0';
     final num = double.tryParse(price.toString()) ?? 0;
     if (num >= 1000000) {
-      return '${(num / 1000000).toStringAsFixed(1)}M';
-    } else if (num >= 1000) {
-      return '${(num / 1000).toStringAsFixed(0)}K';
+      return '${(num / 1000000).toStringAsFixed(2)}M';
     }
     return num.toStringAsFixed(0);
   }

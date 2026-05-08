@@ -41,4 +41,10 @@ class AdminService {
     );
     return response as Map<String, dynamic>;
   }
+
+  /// Toggle featured status
+  static Future<Map<String, dynamic>> toggleFeatured(int id) async {
+    final response = await ApiService.put('/admin/properties/$id/toggle-featured');
+    return response as Map<String, dynamic>;
+  }
 }
